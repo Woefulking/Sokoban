@@ -3,10 +3,13 @@ const TILE_SIZE = 40;
 const canvas = document.getElementById('canvas');
 const cxt = canvas.getContext('2d');
 let levelData = null;
+let level = null;
 let turnsHistory = [];
 let player = null;
-let floor = null;
+let goals = null;
 let boxes = null;
+let floor = null;
+let currentLevel = 1;
 
 async function getLevelDataFromTxt(level) {
   try {
@@ -23,7 +26,7 @@ async function getLevelDataFromTxt(level) {
   }
 }
 
-function createLevelFromTxt(levelData) {
+function createLevelFromTxt() {
   const lines = levelData.split(/\r?\n/);
   const cols = Math.max(...lines.map((line) => line.length));
 
@@ -33,7 +36,7 @@ function createLevelFromTxt(levelData) {
   });
 }
 
-function findPlayerOnLevel(level) {
+function findPlayerOnLevel() {
   for (let rowIndex = 0; rowIndex < level.length; rowIndex++) {
     const row = level[rowIndex];
     for (let colIndex = 0; colIndex < row.length; colIndex++) {
@@ -45,7 +48,7 @@ function findPlayerOnLevel(level) {
   return { x: null, y: null };
 }
 
-function findBoxesOnLevel(level) {
+function findBoxesOnLevel() {
   let boxes = [];
   for (let rowIndex = 0; rowIndex < level.length; rowIndex++) {
     const row = level[rowIndex];
@@ -58,7 +61,7 @@ function findBoxesOnLevel(level) {
   return boxes;
 }
 
-function findGoalsOnLevel(level) {
+function findGoalsOnLevel() {
   let goals = [];
   for (let rowIndex = 0; rowIndex < level.length; rowIndex++) {
     const row = level[rowIndex];
@@ -71,7 +74,7 @@ function findGoalsOnLevel(level) {
   return goals;
 }
 
-function floorFill(level) {
+function floorFill() {
   let target = [' ', '$', '@'];
   let newSymbol = '_';
 
@@ -142,7 +145,7 @@ function drawBackground() {
   );
 }
 
-function drawBoxes(boxes) {
+function drawBoxes() {
   cxt.fillStyle = 'orange';
 
   boxes.forEach((box) => {
@@ -162,22 +165,30 @@ function updateScreen() {
   drawPlayer();
 }
 
-function checkWin(boxes, goals) {
+function checkWin() {
   const isWin =
     boxes.length === goals.length &&
     boxes.every((box) => goals.some((goal) => goal.x === box.x && goal.y === box.y));
 
-  if (isWin) console.log('Победа');
+  return isWin;
 }
 
-function moveBoxe(level, box, goals, newX, newY, oldX, oldY) {
+function moveBoxe(box, newX, newY, oldX, oldY) {
   const dx = newX - oldX;
   const dy = newY - oldY;
 
   const nextX = newX + dx;
   const nextY = newY + dy;
 
-  if (level[nextY][nextX] === '#') return;
+  if (
+    nextY < 0 ||
+    nextY >= level.length ||
+    nextX < 0 ||
+    nextX >= level[nextY].length ||
+    level[nextY][nextX] === '#'
+  ) {
+    return;
+  }
 
   const anotherBox = boxes.some(
     (otherBox) => otherBox !== box && otherBox.x === nextX && otherBox.y === nextY,
@@ -188,8 +199,6 @@ function moveBoxe(level, box, goals, newX, newY, oldX, oldY) {
   box.x = nextX;
   box.y = nextY;
 
-  checkWin(boxes, goals);
-
   player.x = newX;
   player.y = newY;
 
@@ -198,69 +207,18 @@ function moveBoxe(level, box, goals, newX, newY, oldX, oldY) {
     boxes: boxes.map((box) => ({ x: box.x, y: box.y })),
   });
 
-  return true;
+  updateScreen();
+
+  if (checkWin()) {
+    currentLevel += 1;
+    turnsHistory = [];
+    levelData = null;
+    startGame(currentLevel);
+  }
 }
 
-function movePlayer(level, goals) {
-  window.addEventListener('keydown', (event) => {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) {
-      event.preventDefault();
-    }
-
-    const oldX = player.x;
-    const oldY = player.y;
-
-    let newX = oldX;
-    let newY = oldY;
-
-    switch (event.code) {
-      case 'ArrowUp':
-      case 'KeyW':
-        newY -= 1;
-        break;
-      case 'ArrowDown':
-      case 'KeyS':
-        newY += 1;
-        break;
-      case 'ArrowLeft':
-      case 'KeyA':
-        newX -= 1;
-        break;
-      case 'ArrowRight':
-      case 'KeyD':
-        newX += 1;
-        break;
-      default:
-        return;
-    }
-
-    if (
-      newY >= 0 &&
-      newY < level.length &&
-      newX >= 0 &&
-      newX < level[newY].length &&
-      level[newY][newX] !== '#'
-    ) {
-      const box = boxes.find((box) => box.x === newX && box.y === newY);
-      if (box) {
-        moveBoxe(level, box, goals, newX, newY, oldX, oldY);
-      } else {
-        player.x = newX;
-        player.y = newY;
-        turnsHistory.push({
-          player: { x: player.x, y: player.y },
-          boxes: boxes.map((box) => ({ x: box.x, y: box.y })),
-        });
-      }
-    }
-    updateScreen();
-  });
-}
-
-function turnBack() {
-  window.addEventListener('keydown', (event) => {
-    if (event.code !== 'KeyZ') return;
-
+function handleGameKeyPress(event) {
+  if (event.code === 'KeyZ') {
     event.preventDefault();
 
     if (turnsHistory.length <= 1) return;
@@ -272,16 +230,73 @@ function turnBack() {
     player.x = previousState.player.x;
     player.y = previousState.player.y;
 
-    boxes = previousState.boxes.map((box) => ({
-      x: box.x,
-      y: box.y,
-    }));
-
+    boxes = previousState.boxes.map((box) => ({ x: box.x, y: box.y }));
     updateScreen();
+    return;
+  }
+
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) {
+    event.preventDefault();
+  }
+
+  const oldX = player.x;
+  const oldY = player.y;
+
+  let newX = oldX;
+  let newY = oldY;
+
+  switch (event.code) {
+    case 'ArrowUp':
+    case 'KeyW':
+      newY -= 1;
+      break;
+    case 'ArrowDown':
+    case 'KeyS':
+      newY += 1;
+      break;
+    case 'ArrowLeft':
+    case 'KeyA':
+      newX -= 1;
+      break;
+    case 'ArrowRight':
+    case 'KeyD':
+      newX += 1;
+      break;
+    default:
+      return;
+  }
+
+  if (
+    newY >= 0 &&
+    newY < level.length &&
+    newX >= 0 &&
+    newX < level[newY].length &&
+    level[newY][newX] === '#'
+  )
+    return;
+
+  const box = boxes.find((box) => box.x === newX && box.y === newY);
+  if (box) {
+    moveBoxe(box, newX, newY, oldX, oldY);
+    return;
+  }
+
+  player.x = newX;
+  player.y = newY;
+  turnsHistory.push({
+    player: { x: player.x, y: player.y },
+    boxes: boxes.map((box) => ({ x: box.x, y: box.y })),
   });
+
+  updateScreen();
 }
-function clearTurnsHistory() {
-  turnsHistory = [];
+
+function initGameControls() {
+  window.addEventListener('keydown', handleGameKeyPress);
+}
+
+function disableGameControls() {
+  window.removeEventListener('keydown', handleGameKeyPress);
 }
 
 //TODO
@@ -290,26 +305,28 @@ function clearTurnsHistory() {
 //5) Сделать выбор уровня
 //6) Сделать редактор уровней
 
-async function startGame() {
+async function startGame(currentLevel) {
+  disableGameControls();
+
+  turnsHistory = [];
   if (!levelData) {
-    levelData = await getLevelDataFromTxt(1);
+    levelData = await getLevelDataFromTxt(currentLevel);
   }
-  clearTurnsHistory();
-  const level = createLevelFromTxt(levelData);
-  player = findPlayerOnLevel(level);
-  boxes = findBoxesOnLevel(level);
+
+  level = createLevelFromTxt();
+  player = findPlayerOnLevel();
+  boxes = findBoxesOnLevel();
   turnsHistory.push({
     player: { x: player.x, y: player.y },
     boxes: boxes.map((box) => ({ x: box.x, y: box.y })),
   });
-  const goals = findGoalsOnLevel(level);
-  floor = floorFill(level);
+  goals = findGoalsOnLevel();
+  floor = floorFill();
 
   drawBackground();
-  drawBoxes(boxes);
+  drawBoxes();
   drawPlayer();
-  movePlayer(level, goals);
-  turnBack();
+  initGameControls();
 }
 
-startGame();
+startGame(currentLevel);
