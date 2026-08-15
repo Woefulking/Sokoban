@@ -5,7 +5,7 @@ const cxt = canvas.getContext('2d');
 
 async function getLevelDataFromTxt(level) {
   try {
-    const responce = await fetch(`./${level}.txt`);
+    const responce = await fetch(`./levels/${level}.txt`);
 
     if (!responce.ok) {
       throw new Error(`Файл не найден: ${responce.status}`);
@@ -40,7 +40,20 @@ function findPlayerOnLevel(level) {
   return { x: null, y: null };
 }
 
-function fildGoalsOnLevel(level) {
+function findBoxesOnLevel(level) {
+  let boxes = [];
+  for (let rowIndex = 0; rowIndex < level.length; rowIndex++) {
+    const row = level[rowIndex];
+    for (let colIndex = 0; colIndex < row.length; colIndex++) {
+      if (row[colIndex] === '$') {
+        boxes.push({ x: colIndex, y: rowIndex });
+      }
+    }
+  }
+  return boxes;
+}
+
+function findGoalsOnLevel(level) {
   let goals = [];
   for (let rowIndex = 0; rowIndex < level.length; rowIndex++) {
     const row = level[rowIndex];
@@ -98,6 +111,10 @@ function floorFill(level, player) {
 }
 
 function drawBackground(floor) {
+  const rows = floor.length;
+  const cols = floor[0].length;
+  canvas.width = cols * TILE_SIZE;
+  canvas.height = rows * TILE_SIZE;
   floor.forEach((row, rowIndex) =>
     row.forEach((elem, colIndex) => {
       let color = null;
@@ -120,62 +137,62 @@ function drawBackground(floor) {
   );
 }
 
-function drawLogic(level) {
-  level.forEach((row, rowIndex) =>
-    row.forEach((elem, colIndex) => {
-      let color = null;
-      switch (elem) {
-        case '@':
-          color = 'blue';
-          break;
-        case '$':
-          color = 'orange';
-          break;
-        default:
-          return;
-      }
+function drawBoxes(boxes) {
+  cxt.fillStyle = 'orange';
 
-      cxt.fillStyle = color;
-      cxt.fillRect(colIndex * TILE_SIZE, rowIndex * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-    }),
-  );
+  boxes.forEach((box) => {
+    cxt.fillRect(box.x * TILE_SIZE, box.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+  });
 }
 
-function drawLevel(level, floor) {
-  const rows = level.length;
-  const cols = level[0].length;
-  canvas.width = cols * TILE_SIZE;
-  canvas.height = rows * TILE_SIZE;
+function drawPlayer(player) {
+  cxt.fillStyle = 'blue';
 
-  drawBackground(floor);
-  drawLogic(level);
+  cxt.fillRect(player.x * TILE_SIZE, player.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 }
 
-function updateScreen(level, floor, player) {
+function updateScreen(floor, boxes, player) {
   cxt.clearRect(0, 0, canvas.width, canvas.height);
-  drawLevel(level, floor);
-  console.log(level);
+  drawBackground(floor);
+  drawBoxes(boxes);
+  drawPlayer(player);
 }
 
-function checkForBoxes(level, newX, newY, oldX, oldY, player) {
+function checkWin(boxes, goals) {
+  const isWin =
+    boxes.length === goals.length &&
+    boxes.every((box) => goals.some((goal) => goal.x === box.x && goal.y === box.y));
+
+  if (isWin) console.log('Победа');
+}
+
+function moveBoxes(level, box, boxes, goals, newX, newY, oldX, oldY, player) {
   const dx = newX - oldX;
   const dy = newY - oldY;
 
-  const boxNextX = newX + dx;
-  const boxNextY = newY + dy;
+  const nextX = newX + dx;
+  const nextY = newY + dy;
 
-  if (level[boxNextY][boxNextX] === ' ' || level[boxNextY][boxNextX] === '.') {
-    level[boxNextY][boxNextX] = '$';
-    level[newY][newX] = '@';
-    level[oldY][oldX] = ' ';
-    player.x = newX;
-    player.y = newY;
-  }
+  if (level[nextY][nextX] === '#') return;
 
-  if (level[newY][newX] === '$' || level[newY][newX] === '#') return;
+  const anotherBox = boxes.some(
+    (otherBox) => otherBox !== box && otherBox.x === nextX && otherBox.y === nextY,
+  );
+
+  if (anotherBox) return;
+
+  box.x = nextX;
+  box.y = nextY;
+
+  checkWin(boxes, goals);
+
+  player.x = newX;
+  player.y = newY;
+
+  return true;
 }
 
-function movePlayer(level, floor, player) {
+function movePlayer(level, boxes, goals, floor, player) {
   window.addEventListener('keydown', (event) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) {
       event.preventDefault();
@@ -221,19 +238,15 @@ function movePlayer(level, floor, player) {
       newX < level[newY].length &&
       level[newY][newX] !== '#'
     ) {
-      if (level[newY][newX] === '$') {
-        checkForBoxes(level, newX, newY, oldX, oldY, player);
+      const box = boxes.find((box) => box.x === newX && box.y === newY);
+      if (box) {
+        moveBoxes(level, box, boxes, goals, newX, newY, oldX, oldY, player);
       } else {
-        level[oldY][oldX] = ' ';
-
         player.x = newX;
         player.y = newY;
-
-        level[newY][newX] = '@';
       }
     }
-
-    updateScreen(level, floor, player);
+    updateScreen(floor, boxes, player);
   });
 }
 
@@ -241,11 +254,14 @@ async function startGame() {
   const levelData = await getLevelDataFromTxt(1);
   const level = createLevelFromTxt(levelData);
   const player = findPlayerOnLevel(level);
-  const goals = fildGoalsOnLevel(level);
-  console.log(level);
+  const boxes = findBoxesOnLevel(level);
   const floor = floorFill(level, player);
-  drawLevel(level, floor);
-  movePlayer(level, floor, player);
+  const goals = findGoalsOnLevel(level);
+
+  drawBackground(floor);
+  drawBoxes(boxes);
+  drawPlayer(player);
+  movePlayer(level, boxes, goals, floor, player);
 }
 
 startGame();
