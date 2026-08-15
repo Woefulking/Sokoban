@@ -2,6 +2,11 @@ const TILE_SIZE = 40;
 
 const canvas = document.getElementById('canvas');
 const cxt = canvas.getContext('2d');
+let levelData = null;
+let turnsHistory = [];
+let player = null;
+let floor = null;
+let boxes = null;
 
 async function getLevelDataFromTxt(level) {
   try {
@@ -66,7 +71,7 @@ function findGoalsOnLevel(level) {
   return goals;
 }
 
-function floorFill(level, player) {
+function floorFill(level) {
   let target = [' ', '$', '@'];
   let newSymbol = '_';
 
@@ -110,7 +115,7 @@ function floorFill(level, player) {
   return copy;
 }
 
-function drawBackground(floor) {
+function drawBackground() {
   const rows = floor.length;
   const cols = floor[0].length;
   canvas.width = cols * TILE_SIZE;
@@ -145,17 +150,16 @@ function drawBoxes(boxes) {
   });
 }
 
-function drawPlayer(player) {
+function drawPlayer() {
   cxt.fillStyle = 'blue';
 
   cxt.fillRect(player.x * TILE_SIZE, player.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 }
 
-function updateScreen(floor, boxes, player) {
-  cxt.clearRect(0, 0, canvas.width, canvas.height);
+function updateScreen() {
   drawBackground(floor);
   drawBoxes(boxes);
-  drawPlayer(player);
+  drawPlayer();
 }
 
 function checkWin(boxes, goals) {
@@ -166,7 +170,7 @@ function checkWin(boxes, goals) {
   if (isWin) console.log('Победа');
 }
 
-function moveBoxes(level, box, boxes, goals, newX, newY, oldX, oldY, player) {
+function moveBoxe(level, box, goals, newX, newY, oldX, oldY) {
   const dx = newX - oldX;
   const dy = newY - oldY;
 
@@ -189,10 +193,15 @@ function moveBoxes(level, box, boxes, goals, newX, newY, oldX, oldY, player) {
   player.x = newX;
   player.y = newY;
 
+  turnsHistory.push({
+    player: { x: player.x, y: player.y },
+    boxes: boxes.map((box) => ({ x: box.x, y: box.y })),
+  });
+
   return true;
 }
 
-function movePlayer(level, boxes, goals, floor, player) {
+function movePlayer(level, goals) {
   window.addEventListener('keydown', (event) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) {
       event.preventDefault();
@@ -204,28 +213,22 @@ function movePlayer(level, boxes, goals, floor, player) {
     let newX = oldX;
     let newY = oldY;
 
-    let flag = null;
-
     switch (event.code) {
       case 'ArrowUp':
       case 'KeyW':
         newY -= 1;
-        flag = 'up';
         break;
       case 'ArrowDown':
       case 'KeyS':
         newY += 1;
-        flag = 'down';
         break;
       case 'ArrowLeft':
       case 'KeyA':
         newX -= 1;
-        flag = 'left';
         break;
       case 'ArrowRight':
       case 'KeyD':
         newX += 1;
-        flag = 'right';
         break;
       default:
         return;
@@ -240,28 +243,73 @@ function movePlayer(level, boxes, goals, floor, player) {
     ) {
       const box = boxes.find((box) => box.x === newX && box.y === newY);
       if (box) {
-        moveBoxes(level, box, boxes, goals, newX, newY, oldX, oldY, player);
+        moveBoxe(level, box, goals, newX, newY, oldX, oldY);
       } else {
         player.x = newX;
         player.y = newY;
+        turnsHistory.push({
+          player: { x: player.x, y: player.y },
+          boxes: boxes.map((box) => ({ x: box.x, y: box.y })),
+        });
       }
     }
-    updateScreen(floor, boxes, player);
+    updateScreen();
   });
 }
 
-async function startGame() {
-  const levelData = await getLevelDataFromTxt(1);
-  const level = createLevelFromTxt(levelData);
-  const player = findPlayerOnLevel(level);
-  const boxes = findBoxesOnLevel(level);
-  const floor = floorFill(level, player);
-  const goals = findGoalsOnLevel(level);
+function turnBack() {
+  window.addEventListener('keydown', (event) => {
+    if (event.code !== 'KeyZ') return;
 
-  drawBackground(floor);
+    event.preventDefault();
+
+    if (turnsHistory.length <= 1) return;
+
+    turnsHistory.pop();
+
+    const previousState = turnsHistory[turnsHistory.length - 1];
+
+    player.x = previousState.player.x;
+    player.y = previousState.player.y;
+
+    boxes = previousState.boxes.map((box) => ({
+      x: box.x,
+      y: box.y,
+    }));
+
+    updateScreen();
+  });
+}
+function clearTurnsHistory() {
+  turnsHistory = [];
+}
+
+//TODO
+//3) Перейти на react + typescript и vite
+//4) Сделать меню
+//5) Сделать выбор уровня
+//6) Сделать редактор уровней
+
+async function startGame() {
+  if (!levelData) {
+    levelData = await getLevelDataFromTxt(1);
+  }
+  clearTurnsHistory();
+  const level = createLevelFromTxt(levelData);
+  player = findPlayerOnLevel(level);
+  boxes = findBoxesOnLevel(level);
+  turnsHistory.push({
+    player: { x: player.x, y: player.y },
+    boxes: boxes.map((box) => ({ x: box.x, y: box.y })),
+  });
+  const goals = findGoalsOnLevel(level);
+  floor = floorFill(level);
+
+  drawBackground();
   drawBoxes(boxes);
-  drawPlayer(player);
-  movePlayer(level, boxes, goals, floor, player);
+  drawPlayer();
+  movePlayer(level, goals);
+  turnBack();
 }
 
 startGame();
