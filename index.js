@@ -15,6 +15,21 @@ let floor = null;
 let outerWalls = new Set();
 let currentLevel = 1;
 
+const tiles = {
+  wall: { x: 32, y: 0 },
+  wallHorizontal: { x: 0, y: 0 },
+  wallRight: { x: 16, y: 0 },
+  wallCorner: { x: 32, y: 0 },
+  goal: { x: 48, y: 0 },
+  boxOnGoal: { x: 64, y: 0 },
+  floor: { x: 0, y: 16 },
+  waterFloor: { x: 0, y: 32 },
+  water: { x: 0, y: 48 },
+  box: { x: 0, y: 64 },
+  bridgeHorizontal: { x: 32, y: 32 },
+  bridgeVertical: { x: 32, y: 48 },
+};
+
 async function getLevelDataFromTxt(level) {
   try {
     const responce = await fetch(`./levels/${level}.txt`);
@@ -122,15 +137,6 @@ function floorFill() {
   return copy;
 }
 
-const tiles = {
-  wall: { x: 32, y: 0 },
-  water: { x: 0, y: 48 },
-  floor: { x: 0, y: 16 },
-  box: { x: 0, y: 64 },
-  goal: { x: 48, y: 0 },
-  boxOnGoal: { x: 64, y: 0 },
-};
-
 const tileSet = new Image();
 tileSet.src = './images/tileset.png';
 
@@ -148,6 +154,76 @@ let isPlayerTileSetLoaded = false;
 playerTileSet.onload = () => {
   isPlayerTileSetLoaded = true;
 };
+
+function getWallTile(x, y) {
+  const up = floor[y - 1]?.[x] === '#';
+  const down = floor[y + 1]?.[x] === '#';
+  const left = floor[y]?.[x - 1] === '#';
+  const right = floor[y]?.[x + 1] === '#';
+
+  if (left && right && !up && !down) {
+    return tiles.wallHorizontal;
+  }
+
+  if (!left && !right && up && !down) {
+    return tiles.wallHorizontal;
+  }
+
+  if (!left && right && !up && !down) {
+    return tiles.wallHorizontal;
+  }
+
+  if (left && !right && up && !down) {
+    return tiles.wallRight;
+  }
+
+  if (!left && right && up && !down) {
+    return tiles.wallHorizontal;
+  }
+
+  if (left && right && up && !down) {
+    return tiles.wallHorizontal;
+  }
+
+  if (up && down && !left && !right) {
+    return tiles.wallCorner;
+  }
+
+  return tiles.wall;
+}
+
+function getWaterTile(x, y) {
+  const up = floor[y - 1]?.[x] === '#';
+  const down = floor[y + 1]?.[x] === '#';
+  const left = floor[y]?.[x - 1] === '#';
+  const right = floor[y]?.[x + 1] === '#';
+
+  if (left && right && !up && !down) {
+    return tiles.waterFloor;
+  }
+
+  if (!left && !right && !up && down) {
+    return tiles.waterFloor;
+  }
+
+  if (left && !right && !up && !down) {
+    return tiles.waterFloor;
+  }
+
+  if (!left && right && !up && !down) {
+    return tiles.waterFloor;
+  }
+
+  if (!left && !right && !up && !down) {
+    return tiles.waterFloor;
+  }
+
+  if ((left || right) && !up && down) {
+    return tiles.waterFloor;
+  }
+
+  return tiles.water;
+}
 
 function findOuterWalls(level) {
   const queue = [];
@@ -222,11 +298,13 @@ function drawBackground() {
         case '#':
           const key = `${colIndex},${rowIndex}`;
           if (outerWalls.has(key)) {
-            tileX = tiles.wall.x;
-            tileY = tiles.wall.y;
+            const tile = getWallTile(colIndex, rowIndex);
+            tileX = tile.x;
+            tileY = tile.y;
           } else {
-            tileX = tiles.water.x;
-            tileY = tiles.water.y;
+            const tile = getWaterTile(colIndex, rowIndex);
+            tileX = tile.x;
+            tileY = tile.y;
           }
           break;
         case '_':
