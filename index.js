@@ -12,6 +12,7 @@ let player = null;
 let goals = null;
 let boxes = null;
 let floor = null;
+let outerWalls = new Set();
 let currentLevel = 1;
 
 async function getLevelDataFromTxt(level) {
@@ -34,7 +35,7 @@ function createLevelFromTxt() {
   const cols = Math.max(...lines.map((line) => line.length));
 
   return lines.map((line) => {
-    const paddedLine = line.padEnd(cols, '0');
+    const paddedLine = line.padEnd(cols, ' ');
     return paddedLine.split('');
   });
 }
@@ -123,6 +124,7 @@ function floorFill() {
 
 const tiles = {
   wall: { x: 32, y: 0 },
+  water: { x: 0, y: 48 },
   floor: { x: 0, y: 16 },
   box: { x: 0, y: 64 },
   goal: { x: 48, y: 0 },
@@ -138,6 +140,66 @@ tileSet.onload = () => {
   isTileSetLoaded = true;
 };
 
+const playerTileSet = new Image();
+playerTileSet.src = './images/player.png';
+
+let isPlayerTileSetLoaded = false;
+
+playerTileSet.onload = () => {
+  isPlayerTileSetLoaded = true;
+};
+
+function findOuterWalls(level) {
+  const queue = [];
+  const outerWalls = new Set();
+
+  const rows = level.length;
+  const cols = level[0].length;
+
+  const directions = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ];
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const isBorder = x === 0 || x === cols - 1 || y === 0 || y === rows - 1;
+
+      if (isBorder && level[y][x] === '#') {
+        queue.push([x, y]);
+        outerWalls.add(`${x},${y}`);
+      }
+    }
+  }
+
+  while (queue.length > 0) {
+    const [cx, cy] = queue.shift();
+
+    for (const [dx, dy] of directions) {
+      const nx = cx + dx;
+      const ny = cy + dy;
+
+      if (ny < 0 || ny >= rows || nx < 0 || nx >= cols) {
+        continue;
+      }
+
+      if (level[ny][nx] !== '#') {
+        continue;
+      }
+
+      const key = `${nx},${ny}`;
+
+      if (!outerWalls.has(key)) {
+        outerWalls.add(key);
+        queue.push([nx, ny]);
+      }
+    }
+  }
+
+  return outerWalls;
+}
 function drawBackground() {
   if (!isTileSetLoaded) return;
 
@@ -158,17 +220,19 @@ function drawBackground() {
 
       switch (elem) {
         case '#':
-          tileX = tiles.wall.x;
-          tileY = tiles.wall.y;
+          const key = `${colIndex},${rowIndex}`;
+          if (outerWalls.has(key)) {
+            tileX = tiles.wall.x;
+            tileY = tiles.wall.y;
+          } else {
+            tileX = tiles.water.x;
+            tileY = tiles.water.y;
+          }
           break;
         case '_':
           tileX = tiles.floor.x;
           tileY = tiles.floor.y;
           break;
-        // case '.':
-        //   tileX = tiles.goal.x;
-        //   tileY = tiles.goal.y;
-        //   break;
         default:
           return;
       }
@@ -225,9 +289,18 @@ function drawGoals() {
 }
 
 function drawPlayer() {
-  cxt.fillStyle = 'blue';
-
-  cxt.fillRect(player.x * TILE_SIZE, player.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+  if (!isPlayerTileSetLoaded) return;
+  cxt.drawImage(
+    playerTileSet,
+    12,
+    3,
+    12,
+    14,
+    player.x * TILE_SIZE + 6,
+    player.y * TILE_SIZE + 4,
+    TILE_SIZE - 8,
+    TILE_SIZE - 8,
+  );
 }
 
 function updateScreen() {
@@ -387,13 +460,14 @@ async function startGame(currentLevel) {
 
   level = createLevelFromTxt();
   player = findPlayerOnLevel();
+  floor = floorFill();
+  outerWalls = findOuterWalls(floor);
   boxes = findBoxesOnLevel();
   turnsHistory.push({
     player: { x: player.x, y: player.y },
     boxes: boxes.map((box) => ({ x: box.x, y: box.y })),
   });
   goals = findGoalsOnLevel();
-  floor = floorFill();
 
   drawBackground();
   drawGoals();
