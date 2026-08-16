@@ -1,7 +1,10 @@
-const TILE_SIZE = 40;
+const TILE_SCALE = 3;
+const SOURCE_TILE_SIZE = 16;
+const TILE_SIZE = SOURCE_TILE_SIZE * TILE_SCALE;
 
 const canvas = document.getElementById('canvas');
 const cxt = canvas.getContext('2d');
+
 let levelData = null;
 let level = null;
 let turnsHistory = [];
@@ -118,38 +121,106 @@ function floorFill() {
   return copy;
 }
 
+const tiles = {
+  wall: { x: 32, y: 0 },
+  floor: { x: 0, y: 16 },
+  box: { x: 0, y: 64 },
+  goal: { x: 48, y: 0 },
+  boxOnGoal: { x: 64, y: 0 },
+};
+
+const tileSet = new Image();
+tileSet.src = './images/tileset.png';
+
+let isTileSetLoaded = false;
+
+tileSet.onload = () => {
+  isTileSetLoaded = true;
+};
+
 function drawBackground() {
+  if (!isTileSetLoaded) return;
+
   const rows = floor.length;
   const cols = floor[0].length;
+
   canvas.width = cols * TILE_SIZE;
   canvas.height = rows * TILE_SIZE;
+
+  cxt.imageSmoothingEnabled = false;
   floor.forEach((row, rowIndex) =>
     row.forEach((elem, colIndex) => {
-      let color = null;
+      const x = colIndex * TILE_SIZE;
+      const y = rowIndex * TILE_SIZE;
+
+      let tileX = 0;
+      let tileY = 0;
+
       switch (elem) {
         case '#':
-          color = 'black';
-          break;
-        case '.':
-          color = 'red';
+          tileX = tiles.wall.x;
+          tileY = tiles.wall.y;
           break;
         case '_':
-          color = 'gray';
+          tileX = tiles.floor.x;
+          tileY = tiles.floor.y;
           break;
+        // case '.':
+        //   tileX = tiles.goal.x;
+        //   tileY = tiles.goal.y;
+        //   break;
         default:
           return;
       }
-      cxt.fillStyle = color;
-      cxt.fillRect(colIndex * TILE_SIZE, rowIndex * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+
+      cxt.drawImage(
+        tileSet,
+        tileX,
+        tileY,
+        SOURCE_TILE_SIZE,
+        SOURCE_TILE_SIZE,
+        x,
+        y,
+        TILE_SIZE,
+        TILE_SIZE,
+      );
     }),
   );
 }
 
 function drawBoxes() {
-  cxt.fillStyle = 'orange';
-
+  if (!isTileSetLoaded) return;
   boxes.forEach((box) => {
-    cxt.fillRect(box.x * TILE_SIZE, box.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    cxt.drawImage(
+      tileSet,
+      tiles.box.x,
+      tiles.box.y,
+      SOURCE_TILE_SIZE,
+      SOURCE_TILE_SIZE,
+      box.x * TILE_SIZE + 4,
+      box.y * TILE_SIZE + 4,
+      TILE_SIZE - 4,
+      TILE_SIZE - 4,
+    );
+  });
+}
+
+function drawGoals() {
+  if (!isTileSetLoaded) return;
+  goals.forEach((goal) => {
+    const isOnGoal = boxes.some((box) => goal.x === box.x && goal.y === box.y);
+    const tile = isOnGoal ? tiles.boxOnGoal : tiles.goal;
+    cxt.drawImage(
+      tileSet,
+      tile.x,
+      tile.y,
+      SOURCE_TILE_SIZE,
+      SOURCE_TILE_SIZE,
+      goal.x * TILE_SIZE,
+      goal.y * TILE_SIZE,
+      TILE_SIZE,
+      TILE_SIZE,
+    );
   });
 }
 
@@ -161,6 +232,7 @@ function drawPlayer() {
 
 function updateScreen() {
   drawBackground(floor);
+  drawGoals();
   drawBoxes(boxes);
   drawPlayer();
 }
@@ -324,6 +396,7 @@ async function startGame(currentLevel) {
   floor = floorFill();
 
   drawBackground();
+  drawGoals();
   drawBoxes();
   drawPlayer();
   initGameControls();
