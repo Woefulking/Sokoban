@@ -30,6 +30,48 @@ const tiles = {
   bridgeVertical: { x: 32, y: 48 },
 };
 
+const playerSprites = {
+  up: [
+    { x: 12, y: 57 },
+    { x: 0, y: 57 },
+    { x: 24, y: 57 },
+  ],
+  down: [
+    { x: 12, y: 3 },
+    { x: 0, y: 3 },
+    { x: 24, y: 3 },
+  ],
+  left: [
+    { x: 12, y: 21 },
+    { x: 0, y: 21 },
+    { x: 24, y: 21 },
+  ],
+
+  right: [
+    { x: 12, y: 39 },
+    { x: 0, y: 39 },
+    { x: 24, y: 39 },
+  ],
+};
+
+const tileSet = new Image();
+tileSet.src = './images/tileset.png';
+
+let isTileSetLoaded = false;
+
+tileSet.onload = () => {
+  isTileSetLoaded = true;
+};
+
+const playerTileSet = new Image();
+playerTileSet.src = './images/player.png';
+
+let isPlayerTileSetLoaded = false;
+
+playerTileSet.onload = () => {
+  isPlayerTileSetLoaded = true;
+};
+
 async function getLevelDataFromTxt(level) {
   try {
     const responce = await fetch(`./levels/${level}.txt`);
@@ -56,45 +98,26 @@ function createLevelFromTxt() {
 }
 
 function findPlayerOnLevel() {
-  for (let rowIndex = 0; rowIndex < level.length; rowIndex++) {
-    const row = level[rowIndex];
-    for (let colIndex = 0; colIndex < row.length; colIndex++) {
-      if (row[colIndex] === '@') {
-        return { x: colIndex, y: rowIndex };
-      }
-    }
-  }
-  return { x: null, y: null };
+  const y = level.findIndex((row) => row.includes('@'));
+  const x = level[y].indexOf('@');
+
+  return { x, y, direction: 'down', frame: 0 };
 }
 
 function findBoxesOnLevel() {
-  let boxes = [];
-  for (let rowIndex = 0; rowIndex < level.length; rowIndex++) {
-    const row = level[rowIndex];
-    for (let colIndex = 0; colIndex < row.length; colIndex++) {
-      if (row[colIndex] === '$') {
-        boxes.push({ x: colIndex, y: rowIndex });
-      }
-    }
-  }
-  return boxes;
+  return level.flatMap((row, y) =>
+    [...row].map((cell, x) => (cell === '$' ? { x, y } : null)).filter(Boolean),
+  );
 }
 
 function findGoalsOnLevel() {
-  let goals = [];
-  for (let rowIndex = 0; rowIndex < level.length; rowIndex++) {
-    const row = level[rowIndex];
-    for (let colIndex = 0; colIndex < row.length; colIndex++) {
-      if (row[colIndex] === '.') {
-        goals.push({ x: colIndex, y: rowIndex });
-      }
-    }
-  }
-  return goals;
+  return level.flatMap((row, y) =>
+    [...row].map((cell, x) => (cell === '.' ? { x, y } : null)).filter(Boolean),
+  );
 }
 
 function floorFill() {
-  let target = [' ', '$', '@'];
+  let target = [' ', '$', '@', '.'];
   let newSymbol = '_';
 
   let startX = player.x;
@@ -137,24 +160,6 @@ function floorFill() {
   return copy;
 }
 
-const tileSet = new Image();
-tileSet.src = './images/tileset.png';
-
-let isTileSetLoaded = false;
-
-tileSet.onload = () => {
-  isTileSetLoaded = true;
-};
-
-const playerTileSet = new Image();
-playerTileSet.src = './images/player.png';
-
-let isPlayerTileSetLoaded = false;
-
-playerTileSet.onload = () => {
-  isPlayerTileSetLoaded = true;
-};
-
 function getWallTile(x, y) {
   const up = floor[y - 1]?.[x] === '#';
   const down = floor[y + 1]?.[x] === '#';
@@ -165,7 +170,15 @@ function getWallTile(x, y) {
     return tiles.wallHorizontal;
   }
 
+  if (left && !right && !up && !down) {
+    return tiles.wallHorizontal;
+  }
+
   if (!left && !right && up && !down) {
+    return tiles.wallHorizontal;
+  }
+
+  if (left && right && !up && !down) {
     return tiles.wallHorizontal;
   }
 
@@ -193,10 +206,10 @@ function getWallTile(x, y) {
 }
 
 function getWaterTile(x, y) {
-  const up = floor[y - 1]?.[x] === '#';
-  const down = floor[y + 1]?.[x] === '#';
-  const left = floor[y]?.[x - 1] === '#';
-  const right = floor[y]?.[x + 1] === '#';
+  const up = floor[y - 1]?.[x] === '~';
+  const down = floor[y + 1]?.[x] === '~';
+  const left = floor[y]?.[x - 1] === '~';
+  const right = floor[y]?.[x + 1] === '~';
 
   if (left && right && !up && !down) {
     return tiles.waterFloor;
@@ -225,12 +238,12 @@ function getWaterTile(x, y) {
   return tiles.water;
 }
 
-function findOuterWalls(level) {
+function findOuterWalls() {
   const queue = [];
   const outerWalls = new Set();
 
-  const rows = level.length;
-  const cols = level[0].length;
+  const rows = floor.length;
+  const cols = floor[0].length;
 
   const directions = [
     [1, 0],
@@ -243,7 +256,7 @@ function findOuterWalls(level) {
     for (let x = 0; x < cols; x++) {
       const isBorder = x === 0 || x === cols - 1 || y === 0 || y === rows - 1;
 
-      if (isBorder && level[y][x] === '#') {
+      if (isBorder && floor[y][x] === '#') {
         queue.push([x, y]);
         outerWalls.add(`${x},${y}`);
       }
@@ -261,7 +274,7 @@ function findOuterWalls(level) {
         continue;
       }
 
-      if (level[ny][nx] !== '#') {
+      if (floor[ny][nx] !== '#') {
         continue;
       }
 
@@ -275,6 +288,25 @@ function findOuterWalls(level) {
   }
 
   return outerWalls;
+}
+
+function convertWallsToWater() {
+  const convertedLevel = structuredClone(floor);
+  for (let y = 0; y < convertedLevel.length; y++) {
+    for (let x = 0; x < convertedLevel[y].length; x++) {
+      if (convertedLevel[y][x] !== '#') {
+        continue;
+      }
+
+      const key = `${x},${y}`;
+
+      if (!outerWalls.has(key)) {
+        convertedLevel[y][x] = '~';
+      }
+    }
+  }
+
+  return convertedLevel;
 }
 function drawBackground() {
   if (!isTileSetLoaded) return;
@@ -295,22 +327,25 @@ function drawBackground() {
       let tileY = 0;
 
       switch (elem) {
-        case '#':
-          const key = `${colIndex},${rowIndex}`;
-          if (outerWalls.has(key)) {
-            const tile = getWallTile(colIndex, rowIndex);
-            tileX = tile.x;
-            tileY = tile.y;
-          } else {
-            const tile = getWaterTile(colIndex, rowIndex);
-            tileX = tile.x;
-            tileY = tile.y;
-          }
+        case '#': {
+          const tile = getWallTile(colIndex, rowIndex);
+          tileX = tile.x;
+          tileY = tile.y;
           break;
+        }
+
+        case '~': {
+          const tile = getWaterTile(colIndex, rowIndex);
+          tileX = tile.x;
+          tileY = tile.y;
+          break;
+        }
+
         case '_':
           tileX = tiles.floor.x;
           tileY = tiles.floor.y;
           break;
+
         default:
           return;
       }
@@ -368,10 +403,11 @@ function drawGoals() {
 
 function drawPlayer() {
   if (!isPlayerTileSetLoaded) return;
+  const playerSprite = playerSprites[player.direction][player.frame];
   cxt.drawImage(
     playerTileSet,
-    12,
-    3,
+    playerSprite.x,
+    playerSprite.y,
     12,
     14,
     player.x * TILE_SIZE + 6,
@@ -396,7 +432,7 @@ function checkWin() {
   return isWin;
 }
 
-function moveBoxe(box, newX, newY, oldX, oldY) {
+function moveBoxe(box, newX, newY, oldX, oldY, direction) {
   const dx = newX - oldX;
   const dy = newY - oldY;
 
@@ -424,9 +460,11 @@ function moveBoxe(box, newX, newY, oldX, oldY) {
 
   player.x = newX;
   player.y = newY;
+  player.direction = direction;
+  player.frame = (player.frame + 1) % 3;
 
   turnsHistory.push({
-    player: { x: player.x, y: player.y },
+    player: { x: player.x, y: player.y, direction },
     boxes: boxes.map((box) => ({ x: box.x, y: box.y })),
   });
 
@@ -452,6 +490,7 @@ function handleGameKeyPress(event) {
 
     player.x = previousState.player.x;
     player.y = previousState.player.y;
+    player.direction = previousState.player.direction;
 
     boxes = previousState.boxes.map((box) => ({ x: box.x, y: box.y }));
     updateScreen();
@@ -468,22 +507,28 @@ function handleGameKeyPress(event) {
   let newX = oldX;
   let newY = oldY;
 
+  let direction = player.direction;
+
   switch (event.code) {
     case 'ArrowUp':
     case 'KeyW':
       newY -= 1;
+      direction = 'up';
       break;
     case 'ArrowDown':
     case 'KeyS':
       newY += 1;
+      direction = 'down';
       break;
     case 'ArrowLeft':
     case 'KeyA':
       newX -= 1;
+      direction = 'left';
       break;
     case 'ArrowRight':
     case 'KeyD':
       newX += 1;
+      direction = 'right';
       break;
     default:
       return;
@@ -500,14 +545,21 @@ function handleGameKeyPress(event) {
 
   const box = boxes.find((box) => box.x === newX && box.y === newY);
   if (box) {
-    moveBoxe(box, newX, newY, oldX, oldY);
+    moveBoxe(box, newX, newY, oldX, oldY, direction);
     return;
   }
 
   player.x = newX;
   player.y = newY;
+  player.direction = direction;
+  player.frame = (player.frame + 1) % 3;
+
   turnsHistory.push({
-    player: { x: player.x, y: player.y },
+    player: {
+      x: player.x,
+      y: player.y,
+      direction: player.direction,
+    },
     boxes: boxes.map((box) => ({ x: box.x, y: box.y })),
   });
 
@@ -522,12 +574,6 @@ function disableGameControls() {
   window.removeEventListener('keydown', handleGameKeyPress);
 }
 
-//TODO
-//3) Перейти на react + typescript и vite
-//4) Сделать меню
-//5) Сделать выбор уровня
-//6) Сделать редактор уровней
-
 async function startGame(currentLevel) {
   disableGameControls();
 
@@ -538,11 +584,12 @@ async function startGame(currentLevel) {
 
   level = createLevelFromTxt();
   player = findPlayerOnLevel();
-  floor = floorFill();
-  outerWalls = findOuterWalls(floor);
   boxes = findBoxesOnLevel();
+  floor = floorFill();
+  outerWalls = findOuterWalls();
+  floor = convertWallsToWater();
   turnsHistory.push({
-    player: { x: player.x, y: player.y },
+    player: { x: player.x, y: player.y, direction: 'down' },
     boxes: boxes.map((box) => ({ x: box.x, y: box.y })),
   });
   goals = findGoalsOnLevel();

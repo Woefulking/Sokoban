@@ -9,11 +9,32 @@
 </head>
 
 <body>
-    <div class="wrapper">
+
+    <!-- <div class="wrapper">
         <canvas id='canvas'>1</canvas>
         <button type="button" class="button" onclick="startGame(1)">Restart</button>
+    </div> -->
+
+    <!-- Редактор уровней -->
+    <div class="wrapper2">
+        <div class="menu">
+            <div class="sizes">
+                <input id="canvasWidth" type="number" placeholder="Canvas Width">
+                <input id="canvasHeigth" type="number" placeholder="Canvas Height">
+                <button id="createCanvas" type="button" class="button">Создать Структуру
+                    Уровня</button>
+            </div>
+            <button data-block="#" type="button" class="button">Стена</button>
+            <button data-block="~" type="button" class="button">Вода</button>
+            <button data-block="_" type="button" class="button">Пол</button>
+            <button data-block="$" type="button" class="button">Ящик</button>
+            <button data-block="." type="button" class="button">Цель</button>
+            <button data-block="@" type="button" class="button">Игрок</button>
+        </div>
+        <canvas id="levelEditor"></canvas>
     </div>
-    <script src="./index.js"></script>
+    <!-- <script src="./index.js"></script> -->
+    <script src="./levelEditor.js"></script>
 </body>
 
 </html>
