@@ -1,4 +1,4 @@
-const TILE_SIZE = 40;
+const TILE_SIZE = 42;
 
 let activeBlock = null;
 
@@ -9,6 +9,12 @@ let editorFloor = [];
 let editorLevel = [];
 
 let eraserMode = false;
+
+let startX = null;
+let startY = null;
+let endX = null;
+let endY = null;
+let isDrawing = false;
 
 const canvas = document.getElementById('levelEditor');
 const ctx = canvas.getContext('2d');
@@ -74,26 +80,27 @@ function isPlayerPlaced() {
   return editorLevel.some((row) => row.includes('@'));
 }
 
-canvas.addEventListener('click', (event) => {
-  const canvasCoords = canvas.getBoundingClientRect();
-  const mouseX = event.clientX - canvasCoords.left;
-  const mouseY = event.clientY - canvasCoords.top;
+function checkBlock(block, y, x) {
+  const floorBlock = editorFloor[y][x];
 
-  const levelElements = ['.', '$', '@'];
-  const floorElements = ['_', '~', '#'];
-
-  const x = Math.floor(mouseX / TILE_SIZE);
-  const y = Math.floor(mouseY / TILE_SIZE);
-
-  if (y < 0 || y >= editorFloor.length || x < 0 || x >= editorFloor[0].length) {
-    return;
+  if (block === '@' || block === '$') {
+    if (floorBlock === '#' || floorBlock === '~') {
+      return false;
+    }
   }
 
+  return true;
+}
+
+function placeBlock(x, y) {
+  const levelElements = ['$', '@'];
+  const floorElements = [' ', '~', '#', '.'];
+
   if (eraserMode) {
-    if (editorLevel[y][x] !== ' ') {
-      editorLevel[y][x] = ' ';
-    } else if (editorFloor[y][x] !== ' ') {
-      editorFloor[y][x] = ' ';
+    if (editorLevel[y][x] !== '') {
+      editorLevel[y][x] = '';
+    } else if (editorFloor[y][x] !== '') {
+      editorFloor[y][x] = '';
     }
   } else {
     if (activeBlock === '@' && isPlayerPlaced()) {
@@ -101,6 +108,7 @@ canvas.addEventListener('click', (event) => {
     }
 
     if (levelElements.includes(activeBlock)) {
+      if (!checkBlock(activeBlock, y, x)) return;
       editorLevel[y][x] = activeBlock;
     }
 
@@ -108,8 +116,74 @@ canvas.addEventListener('click', (event) => {
       editorFloor[y][x] = activeBlock;
     }
   }
+}
+
+canvas.addEventListener('mousedown', (event) => {
+  const canvasCoords = canvas.getBoundingClientRect();
+  const mouseX = event.clientX - canvasCoords.left;
+  const mouseY = event.clientY - canvasCoords.top;
+
+  startX = Math.floor(mouseX / TILE_SIZE);
+  startY = Math.floor(mouseY / TILE_SIZE);
+
+  isDrawing = true;
+
+  endX = startX;
+  endY = startY;
 
   drawEditor();
+});
+
+canvas.addEventListener('mouseup', (event) => {
+  if (!isDrawing) return;
+
+  isDrawing = false;
+
+  const canvasCoords = canvas.getBoundingClientRect();
+  const mouseX = event.clientX - canvasCoords.left;
+  const mouseY = event.clientY - canvasCoords.top;
+
+  endX = Math.floor(mouseX / TILE_SIZE);
+  endY = Math.floor(mouseY / TILE_SIZE);
+
+  const dx = Math.abs(endX - startX);
+  const dy = Math.abs(endY - startY);
+
+  if (dx > dy) {
+    const minX = Math.min(startX, endX);
+    const maxX = Math.max(startX, endX);
+    for (let i = minX; i <= maxX; i++) {
+      placeBlock(i, startY);
+    }
+  } else {
+    const minY = Math.min(startY, endY);
+    const maxY = Math.max(startY, endY);
+    for (let j = minY; j <= maxY; j++) {
+      placeBlock(startX, j);
+    }
+  }
+
+  drawEditor();
+});
+
+canvas.addEventListener('mousemove', (event) => {
+  if (!isDrawing) return;
+
+  const canvasCoords = canvas.getBoundingClientRect();
+  const mouseX = event.clientX - canvasCoords.left;
+  const mouseY = event.clientY - canvasCoords.top;
+
+  endX = Math.floor(mouseX / TILE_SIZE);
+  endY = Math.floor(mouseY / TILE_SIZE);
+
+  drawEditor();
+});
+
+canvas.addEventListener('mouseleave', () => {
+  if (isDrawing) {
+    isDrawing = false;
+    drawEditor();
+  }
 });
 
 const canvasWidthInput = document.querySelector('#canvasWidth');
@@ -127,23 +201,51 @@ blockButtons.forEach((button) => {
 });
 
 const eraserButton = document.querySelector('#eraser');
-eraserButton.addEventListener('click', (event) => {
+eraserButton.addEventListener('click', () => {
   eraserMode = true;
   activeBlock = null;
 });
 
-async function saveEditorLevel(params) {
-  const convertedEditorLevel = editorLevel.map((row) => row.join('')).join('\n');
+const eraseAllButton = document.querySelector('#eraseAll');
+eraseAllButton.addEventListener('click', () => {
+  editorLevel = Array.from({ length: levelHeight }, () => Array(levelWidth).fill(''));
+  editorFloor = Array.from({ length: levelHeight }, () => Array(levelWidth).fill(''));
+
+  drawEditor();
+});
+
+function validateLevel() {
+  const playerExists = editorLevel.some((row) => row.includes('@'));
+
+  if (!playerExists) return false;
 
   const boxes = editorLevel.flatMap((row, y) =>
-    [...row].map((cell, x) => (cell === '$' ? { x, y } : null)).filter(Boolean),
+    row.map((cell, x) => (cell === '$' ? { x, y } : null)).filter(Boolean),
   );
 
-  const goals = editorLevel.flatMap((row, y) =>
-    [...row].map((cell, x) => (cell === '.' ? { x, y } : null)).filter(Boolean),
+  const goals = editorFloor.flatMap((row, y) =>
+    row.map((cell, x) => (cell === '.' ? { x, y } : null)).filter(Boolean),
   );
 
-  if (boxes.length !== goals.length) return;
+  if (boxes.length !== goals.length) return false;
+
+  return true;
+}
+
+function mergeEditorLevel() {
+  return editorFloor.map((row, rowIndex) => {
+    return row.map((floorItem, colIndex) => {
+      const levelItem = editorLevel[rowIndex][colIndex];
+
+      return levelItem !== '' ? levelItem : floorItem;
+    });
+  });
+}
+
+async function saveEditorLevel() {
+  const mergedLevel = mergeEditorLevel();
+
+  const convertedEditorLevel = mergedLevel.map((row) => row.join('')).join('\n');
 
   try {
     const options = {
@@ -161,12 +263,21 @@ async function saveEditorLevel(params) {
     const writable = await handle.createWritable();
     await writable.write(convertedEditorLevel);
     await writable.close();
+    drawEditor();
   } catch (err) {
     console.error('Ошибка сохранения:', err);
   }
 }
+
 const saveLevelButton = document.querySelector('#saveLevel');
-saveLevelButton.addEventListener('click', saveEditorLevel);
+saveLevelButton.addEventListener('click', async () => {
+  try {
+    if (!validateLevel()) return;
+    await saveEditorLevel();
+  } catch (error) {
+    console.error('Критическая ошибка при клике:', error);
+  }
+});
 
 canvasWidthInput.onchange = (e) => {
   levelWidth = Number(e.target.value);
@@ -183,8 +294,8 @@ createCanvasButton.addEventListener('click', () => {
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
 
-  editorLevel = resizeGrid(editorLevel, levelWidth, levelHeight, ' ');
-  editorFloor = resizeGrid(editorFloor, levelWidth, levelHeight, ' ');
+  editorLevel = resizeGrid(editorLevel, levelWidth, levelHeight, '');
+  editorFloor = resizeGrid(editorFloor, levelWidth, levelHeight, '');
   drawEditor();
 });
 
@@ -202,43 +313,32 @@ function getWallTile(x, y) {
   const left = editorFloor[y]?.[x - 1] === '#';
   const right = editorFloor[y]?.[x + 1] === '#';
 
-  if (left && right && !up && !down) {
-    return tiles.wallHorizontal;
-  }
+  const mask = +up * 1 + +down * 2 + +left * 4 + +right * 8;
 
-  if (left && !right && !up && !down) {
-    return tiles.wallHorizontal;
-  }
+  const wallTilesMap = {
+    0: tiles.wall,
 
-  if (!left && !right && up && !down) {
-    return tiles.wallHorizontal;
-  }
+    1: tiles.wallHorizontal,
+    2: tiles.wall,
+    4: tiles.wallHorizontal,
+    8: tiles.wallHorizontal,
 
-  if (left && right && !up && !down) {
-    return tiles.wallHorizontal;
-  }
+    3: tiles.wallCorner,
+    12: tiles.wallHorizontal,
 
-  if (!left && right && !up && !down) {
-    return tiles.wallHorizontal;
-  }
+    5: tiles.wallRight,
+    9: tiles.wallHorizontal,
+    6: tiles.wall,
+    10: tiles.wall,
 
-  if (left && !right && up && !down) {
-    return tiles.wallRight;
-  }
+    7: tiles.wallHorizontal,
+    11: tiles.wallHorizontal,
+    13: tiles.wallHorizontal,
+    14: tiles.wall,
+    15: tiles.wall,
+  };
 
-  if (!left && right && up && !down) {
-    return tiles.wallHorizontal;
-  }
-
-  if (left && right && up && !down) {
-    return tiles.wallHorizontal;
-  }
-
-  if (up && down && !left && !right) {
-    return tiles.wallCorner;
-  }
-
-  return tiles.wall;
+  return wallTilesMap[mask] || tiles.wall;
 }
 
 function getWaterTile(x, y) {
@@ -247,31 +347,20 @@ function getWaterTile(x, y) {
   const left = editorFloor[y]?.[x - 1] === '~';
   const right = editorFloor[y]?.[x + 1] === '~';
 
-  if (left && right && !up && !down) {
-    return tiles.waterFloor;
-  }
+  const mask = +up * 1 + +down * 2 + +left * 4 + +right * 8;
 
-  if (!left && !right && !up && down) {
-    return tiles.waterFloor;
-  }
+  const waterTilesMap = {
+    0: tiles.waterFloor,
+    2: tiles.waterFloor,
+    4: tiles.waterFloor,
+    8: tiles.waterFloor,
+    12: tiles.waterFloor,
 
-  if (left && !right && !up && !down) {
-    return tiles.waterFloor;
-  }
+    6: tiles.waterFloor,
+    10: tiles.waterFloor,
+  };
 
-  if (!left && right && !up && !down) {
-    return tiles.waterFloor;
-  }
-
-  if (!left && !right && !up && !down) {
-    return tiles.waterFloor;
-  }
-
-  if ((left || right) && !up && down) {
-    return tiles.waterFloor;
-  }
-
-  return tiles.water;
+  return waterTilesMap[mask] || tiles.water;
 }
 
 function drawEditorGrid() {
@@ -313,9 +402,14 @@ function drawFloorBlock(block, colIndex, rowIndex) {
       break;
     }
 
-    case '_': {
+    case ' ': {
       tileX = tiles.floor.x;
       tileY = tiles.floor.y;
+      break;
+    }
+    case '.': {
+      tileX = tiles.goal.x;
+      tileY = tiles.goal.y;
       break;
     }
     default: {
@@ -339,13 +433,6 @@ function drawLevelBlock(block, colIndex, rowIndex) {
       tileY = tiles.box.y;
       break;
     }
-
-    case '.': {
-      tileX = tiles.goal.x;
-      tileY = tiles.goal.y;
-      break;
-    }
-
     case '@': {
       tileX = playerSprites.down[0].x;
       tileY = playerSprites.down[0].y;
@@ -391,6 +478,27 @@ function drawEditor() {
       drawLevelBlock(block, colIndex, rowIndex);
     });
   });
+
+  if (isDrawing) {
+    const dx = Math.abs(endX - startX);
+    const dy = Math.abs(endY - startY);
+
+    ctx.fillStyle = eraserMode ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 120, 255, 0.4)';
+
+    if (dx > dy) {
+      const minX = Math.min(startX, endX);
+      const maxX = Math.max(startX, endX);
+      for (let i = minX; i <= maxX; i++) {
+        ctx.fillRect(i * TILE_SIZE, startY * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      }
+    } else {
+      const minY = Math.min(startY, endY);
+      const maxY = Math.max(startY, endY);
+      for (let j = minY; j <= maxY; j++) {
+        ctx.fillRect(startX * TILE_SIZE, j * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      }
+    }
+  }
 
   drawEditorGrid();
 }

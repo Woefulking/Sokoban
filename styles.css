@@ -42,3 +42,18 @@ canvas {
     flex-direction: column;
     gap: 16px;
 }
+
+.sizes {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    align-items: center;
+    justify-content: center;
+}
+
+.buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 80px);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 8px;
+}

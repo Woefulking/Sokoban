@@ -3,7 +3,7 @@ const SOURCE_TILE_SIZE = 16;
 const TILE_SIZE = SOURCE_TILE_SIZE * TILE_SCALE;
 
 const canvas = document.getElementById('canvas');
-const cxt = canvas.getContext('2d');
+const ctx = canvas.getContext('2d');
 
 let levelData = null;
 let level = null;
@@ -106,18 +106,18 @@ function findPlayerOnLevel() {
 
 function findBoxesOnLevel() {
   return level.flatMap((row, y) =>
-    [...row].map((cell, x) => (cell === '$' ? { x, y } : null)).filter(Boolean),
+    row.map((cell, x) => (cell === '$' ? { x, y } : null)).filter(Boolean),
   );
 }
 
 function findGoalsOnLevel() {
   return level.flatMap((row, y) =>
-    [...row].map((cell, x) => (cell === '.' ? { x, y } : null)).filter(Boolean),
+    row.map((cell, x) => (cell === '.' ? { x, y } : null)).filter(Boolean),
   );
 }
 
 function floorFill() {
-  let target = [' ', '$', '@', '.'];
+  let target = [' ', '$', '@'];
   let newSymbol = '_';
 
   let startX = player.x;
@@ -308,103 +308,118 @@ function convertWallsToWater() {
 
   return convertedLevel;
 }
-function drawBackground() {
-  if (!isTileSetLoaded) return;
 
-  const rows = floor.length;
-  const cols = floor[0].length;
+function drawFloorBlock(block, colIndex, rowIndex) {
+  const x = colIndex * TILE_SIZE;
+  const y = rowIndex * TILE_SIZE;
 
-  canvas.width = cols * TILE_SIZE;
-  canvas.height = rows * TILE_SIZE;
+  let tileX = 0;
+  let tileY = 0;
 
-  cxt.imageSmoothingEnabled = false;
-  floor.forEach((row, rowIndex) =>
-    row.forEach((elem, colIndex) => {
-      const x = colIndex * TILE_SIZE;
-      const y = rowIndex * TILE_SIZE;
+  switch (block) {
+    case '#': {
+      const tile = getWallTile(colIndex, rowIndex);
+      tileX = tile.x;
+      tileY = tile.y;
+      break;
+    }
 
-      let tileX = 0;
-      let tileY = 0;
+    case '~': {
+      const tile = getWaterTile(colIndex, rowIndex);
+      tileX = tile.x;
+      tileY = tile.y;
+      break;
+    }
 
-      switch (elem) {
-        case '#': {
-          const tile = getWallTile(colIndex, rowIndex);
-          tileX = tile.x;
-          tileY = tile.y;
-          break;
-        }
+    case '.':
+      const isOnGoal = boxes.some((box) => box.x === colIndex && box.y === rowIndex);
 
-        case '~': {
-          const tile = getWaterTile(colIndex, rowIndex);
-          tileX = tile.x;
-          tileY = tile.y;
-          break;
-        }
+      const tile = isOnGoal ? tiles.boxOnGoal : tiles.goal;
 
-        case '_':
-          tileX = tiles.floor.x;
-          tileY = tiles.floor.y;
-          break;
+      tileX = tile.x;
+      tileY = tile.y;
+      break;
 
-        default:
-          return;
-      }
+    case ' ':
+      tileX = tiles.floor.x;
+      tileY = tiles.floor.y;
+      break;
 
-      cxt.drawImage(
-        tileSet,
-        tileX,
-        tileY,
-        SOURCE_TILE_SIZE,
-        SOURCE_TILE_SIZE,
-        x,
-        y,
-        TILE_SIZE,
-        TILE_SIZE,
-      );
-    }),
+    default:
+      return;
+  }
+
+  ctx.drawImage(
+    tileSet,
+    tileX,
+    tileY,
+    SOURCE_TILE_SIZE,
+    SOURCE_TILE_SIZE,
+    x,
+    y,
+    TILE_SIZE,
+    TILE_SIZE,
   );
 }
 
-function drawBoxes() {
-  if (!isTileSetLoaded) return;
-  boxes.forEach((box) => {
-    cxt.drawImage(
-      tileSet,
-      tiles.box.x,
-      tiles.box.y,
-      SOURCE_TILE_SIZE,
-      SOURCE_TILE_SIZE,
-      box.x * TILE_SIZE + 4,
-      box.y * TILE_SIZE + 4,
-      TILE_SIZE - 4,
-      TILE_SIZE - 4,
-    );
-  });
-}
+function drawLevelBlock(block, colIndex, rowIndex) {
+  const x = colIndex * TILE_SIZE;
+  const y = rowIndex * TILE_SIZE;
 
-function drawGoals() {
-  if (!isTileSetLoaded) return;
-  goals.forEach((goal) => {
-    const isOnGoal = boxes.some((box) => goal.x === box.x && goal.y === box.y);
-    const tile = isOnGoal ? tiles.boxOnGoal : tiles.goal;
-    cxt.drawImage(
+  let tileX = 0;
+  let tileY = 0;
+
+  if (block === '$') {
+    const box = boxes.some((box) => box.x === colIndex && box.y === rowIndex);
+
+    ctx.drawImage(
       tileSet,
       tile.x,
       tile.y,
       SOURCE_TILE_SIZE,
       SOURCE_TILE_SIZE,
-      goal.x * TILE_SIZE,
-      goal.y * TILE_SIZE,
+      box.x,
+      box.y,
       TILE_SIZE,
       TILE_SIZE,
     );
-  });
+
+    return;
+  }
+
+  if (block === '@') {
+    ctx.drawImage(
+      playerTileSet,
+      playerSprites.down[0].x,
+      playerSprites.down[0].y,
+      12,
+      14,
+      player.x * TILE_SIZE + 6,
+      player.y * TILE_SIZE + 4,
+      TILE_SIZE - 8,
+      TILE_SIZE - 8,
+    );
+  }
+}
+
+function drawBox(box) {
+  ctx.drawImage(
+    tileSet,
+    tiles.box.x,
+    tiles.box.y,
+    SOURCE_TILE_SIZE,
+    SOURCE_TILE_SIZE,
+    box.x * TILE_SIZE + 4,
+    box.y * TILE_SIZE + 4,
+    TILE_SIZE - 4,
+    TILE_SIZE - 4,
+  );
 }
 
 function drawPlayer() {
-  if (!isPlayerTileSetLoaded) return;
   const playerSprite = playerSprites[player.direction][player.frame];
-  cxt.drawImage(
+
+  ctx.drawImage(
     playerTileSet,
     playerSprite.x,
     playerSprite.y,
@@ -417,11 +432,35 @@ function drawPlayer() {
   );
 }
 
-function updateScreen() {
-  drawBackground(floor);
-  drawGoals();
-  drawBoxes(boxes);
+function drawLevel() {
+  if (!isTileSetLoaded) return;
+  if (!isPlayerTileSetLoaded) return;
+
+  const rows = floor.length;
+  const cols = floor[0].length;
+
+  canvas.width = cols * TILE_SIZE;
+  canvas.height = rows * TILE_SIZE;
+
+  ctx.imageSmoothingEnabled = false;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  floor.forEach((row, rowIndex) => {
+    row.forEach((block, colIndex) => {
+      drawFloorBlock(block, colIndex, rowIndex);
+    });
+  });
+
+  boxes.forEach((box) => {
+    drawBox(box);
+  });
+
   drawPlayer();
+}
+
+function updateScreen() {
+  drawLevel();
 }
 
 function checkWin() {
@@ -594,10 +633,7 @@ async function startGame(currentLevel) {
   });
   goals = findGoalsOnLevel();
 
-  drawBackground();
-  drawGoals();
-  drawBoxes();
-  drawPlayer();
+  drawLevel();
   initGameControls();
 }
 
