@@ -1,46 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sokoban</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-
-<body>
-
-    <!-- <div class="wrapper">
-        <canvas id='canvas'>1</canvas>
-        <button type="button" class="button" onclick="startGame(1)">Restart</button>
-    </div> -->
-
-    <!-- Редактор уровней -->
-    <div class="wrapper2">
-        <div class="menu">
-            <div class="sizes">
-                <input id="canvasWidth" type="number" placeholder="Canvas Width">
-                <input id="canvasHeigth" type="number" placeholder="Canvas Height">
-                <button id="createCanvas" type="button" class="button">Создать Структуру
-                    Уровня</button>
-                <button id="saveLevel" type="button" class="button">Сохранить уровень</button>
-            </div>
-            <div class="buttons">
-                <button data-block="#" type="button" class="button">Стена</button>
-                <button data-block="~" type="button" class="button">Вода</button>
-                <button data-block=" " type="button" class="button">Пол</button>
-                <button data-block="$" type="button" class="button">Ящик</button>
-                <button data-block="." type="button" class="button">Цель</button>
-                <button data-block="@" type="button" class="button">Игрок</button>
-                <button id="eraser" type="button" class="button">Удалить блок</button>
-                <button id="eraseAll" type="button" class="button">Удалить все</button>
-
-            </div>
-        </div>
-        <canvas id="levelEditor"></canvas>
-    </div>
-    <!-- <script src="./index.js"></script> -->
-    <script src="./levelEditor.js"></script>
-</body>
-
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>sokoban</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
