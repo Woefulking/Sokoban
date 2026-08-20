@@ -1,15 +1,15 @@
 import { levelTiles, playerTiles, SOURCE_TILE_SIZE, TILE_SIZE } from '../consts/consts';
-import type { BlockType, PlayerPosition, Position } from '../types/types';
+import type { BlockType, EditorConfig, PlayerPosition, Position } from '../types/types';
 import { getWallTile, getWaterTile } from './generalUtils';
 
 function drawFloorBlock(
   ctx: CanvasRenderingContext2D,
   tileSet: HTMLImageElement,
   floor: BlockType[][],
-  boxes: Position[],
   block: string,
   colIndex: number,
-  rowIndex: number
+  rowIndex: number,
+  boxes?: Position[] | null
 ) {
   const x = colIndex * TILE_SIZE;
   const y = rowIndex * TILE_SIZE;
@@ -33,8 +33,9 @@ function drawFloorBlock(
     }
 
     case '.':
-      const isOnGoal = boxes.some((box) => box.x === colIndex && box.y === rowIndex);
-
+      const isOnGoal = boxes
+        ? boxes.some((box) => box.x === colIndex && box.y === rowIndex)
+        : false;
       const tile = isOnGoal ? levelTiles.boxOnGoal : levelTiles.goal;
 
       tileX = tile.x;
@@ -63,7 +64,7 @@ function drawFloorBlock(
   );
 }
 
-function drawBox(ctx: CanvasRenderingContext2D, tileSet: HTMLImageElement, box: Position) {
+export function drawBox(ctx: CanvasRenderingContext2D, tileSet: HTMLImageElement, box: Position) {
   ctx.drawImage(
     tileSet,
     levelTiles.box.x,
@@ -77,13 +78,14 @@ function drawBox(ctx: CanvasRenderingContext2D, tileSet: HTMLImageElement, box: 
   );
 }
 
-function drawPlayer(
+export function drawPlayer(
   ctx: CanvasRenderingContext2D,
   playerTileSet: HTMLImageElement,
   player: PlayerPosition
 ) {
-  if (!player || !playerTiles) return;
-  const playerSprite = playerTiles[player.direction][player.frame];
+  const direction = player.direction || 'down';
+  const frame = player.frame || 0;
+  const playerSprite = playerTiles[direction][frame];
 
   ctx.drawImage(
     playerTileSet,
@@ -98,6 +100,56 @@ function drawPlayer(
   );
 }
 
+export function drawEditorGrid(ctx: CanvasRenderingContext2D, cols: number, rows: number) {
+  const width = cols * TILE_SIZE;
+  const height = rows * TILE_SIZE;
+
+  ctx.beginPath();
+
+  for (let x = 1; x < cols; x++) {
+    ctx.moveTo(x * TILE_SIZE, 0);
+    ctx.lineTo(x * TILE_SIZE, height);
+  }
+
+  for (let y = 1; y < rows; y++) {
+    ctx.moveTo(0, y * TILE_SIZE);
+    ctx.lineTo(width, y * TILE_SIZE);
+  }
+
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+  ctx.stroke();
+}
+
+export function drawGhostPath(ctx: CanvasRenderingContext2D, config: EditorConfig) {
+  const { startPosition, endPosition, eraserMode } = config;
+
+  if (!startPosition || !endPosition) return;
+
+  const startX = startPosition.x;
+  const startY = startPosition.y;
+  const endX = endPosition.x;
+  const endY = endPosition.y;
+
+  const dx = Math.abs(endX - startX);
+  const dy = Math.abs(endY - startY);
+
+  ctx.fillStyle = eraserMode ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 120, 255, 0.5)';
+
+  if (dx > dy) {
+    const minX = Math.min(startX, endX);
+    const maxX = Math.max(startX, endX);
+    for (let i = minX; i <= maxX; i++) {
+      ctx.fillRect(i * TILE_SIZE, startY * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
+  } else {
+    const minY = Math.min(startY, endY);
+    const maxY = Math.max(startY, endY);
+    for (let j = minY; j <= maxY; j++) {
+      ctx.fillRect(startX * TILE_SIZE, j * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
+  }
+}
+
 export function drawLevel(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
@@ -105,20 +157,25 @@ export function drawLevel(
   playerTileSet: HTMLImageElement,
   floor: BlockType[][],
   boxes: Position[],
-  player: PlayerPosition
+  player: PlayerPosition | null,
+  editorConfig?: {
+    isDrawing: boolean;
+    startPosition: Position | null;
+    endPosition: Position | null;
+    eraserMode: boolean;
+  }
 ) {
-  const rows = floor.length;
-  const cols = floor[0]?.length || 0;
+  if (!floor || floor.length === 0) return;
 
-  canvas.width = cols * TILE_SIZE;
-  canvas.height = rows * TILE_SIZE;
+  canvas.width = floor[0].length * TILE_SIZE;
+  canvas.height = floor.length * TILE_SIZE;
 
   ctx.imageSmoothingEnabled = false;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   floor.forEach((row, rowIndex) => {
     row.forEach((block, colIndex) => {
-      drawFloorBlock(ctx, tileSet, floor, boxes, block, colIndex, rowIndex);
+      drawFloorBlock(ctx, tileSet, floor, block, colIndex, rowIndex, boxes);
     });
   });
 
@@ -126,5 +183,12 @@ export function drawLevel(
     drawBox(ctx, tileSet, box);
   });
 
-  drawPlayer(ctx, playerTileSet, player);
+  if (player) {
+    drawPlayer(ctx, playerTileSet, player);
+  }
+
+  if (editorConfig) {
+    drawGhostPath(ctx, editorConfig);
+    drawEditorGrid(ctx, floor[0].length, floor.length);
+  }
 }

@@ -1,5 +1,5 @@
 export type ScreenType = 'splash' | 'menu' | 'game' | 'editor' | 'settings';
-export type BlockType = ' ' | '#' | '~' | '_' | '.' | '$' | '@';
+export type BlockType = '' | ' ' | '#' | '~' | '_' | '.' | '$' | '@';
 export type DirectionType = 'up' | 'down' | 'left' | 'right';
 
 export interface AppState {
@@ -64,3 +64,9 @@ export type EditorActions =
   | { type: 'updateDrawing'; payload: Position }
   | { type: 'stopDrawing' }
   | { type: 'clearGrid' };
+
+export interface EditorConfig {
+  startPosition: Position | null;
+  endPosition: Position | null;
+  eraserMode: boolean;
+}

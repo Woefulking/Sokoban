@@ -1,7 +1,7 @@
 import type { AppActions, AppState } from '../types/types';
 
-export const initialState: AppState = {
-  screen: 'splash',
+export const initialAppState: AppState = {
+  screen: 'menu',
   currentLevel: 1,
   totalLeveles: 50,
   unlockedLevels: [1],

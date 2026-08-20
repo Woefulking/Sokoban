@@ -135,6 +135,12 @@ export function findOuterWalls(floor: BlockType[][]) {
 
 export function convertWallsToWater(floor: BlockType[][], outerWalls: Set<string>) {
   const convertedLevel = structuredClone(floor);
+
+  const hasManualWater = floor.some((row) => row.includes('~'));
+
+  if (hasManualWater) {
+    return convertedLevel;
+  }
   for (let y = 0; y < convertedLevel.length; y++) {
     for (let x = 0; x < convertedLevel[y].length; x++) {
       if (convertedLevel[y][x] !== '#') {

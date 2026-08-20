@@ -1,3 +1,5 @@
+export const TOTAL_LEVELS = 50;
+
 const TILE_SCALE = 3;
 export const SOURCE_TILE_SIZE = 16;
 export const TILE_SIZE = SOURCE_TILE_SIZE * TILE_SCALE;
