@@ -26,7 +26,10 @@ export const Editor = ({ onBack }: EditorProps) => {
   const [previewBoxes, setPreviewBoxes] = useState<Position[]>([]);
   const [previewPlayer, setPreviewPlayer] = useState<PlayerPosition | null>(null);
 
+  const [isCanvasVisible, setIsCanvasVisible] = useState<boolean>(false);
+
   const handleCreateGrid = () => {
+    setIsCanvasVisible(true);
     dispatch({
       type: 'initGrid',
       payload: { width: inputWidth, height: inputHeight },
@@ -379,17 +382,19 @@ export const Editor = ({ onBack }: EditorProps) => {
         </div>
       </div>
 
-      <div className="flex flex-col items-center justify-center gap-4">
-        <div className="p-3 bg-[#45465e] border-4 border-[#341d27] rounded-3xl shadow-[0_8px_0_0_#341d27]">
-          <canvas
-            ref={canvasRef}
-            onMouseDown={!isPreviewMode ? handleMouseDown : undefined}
-            onMouseMove={!isPreviewMode ? handleMouseMove : undefined}
-            onMouseUp={!isPreviewMode ? handleMouseUp : undefined}
-            className="block cursor-crosshair bg-[#45465e]"
-          />
+      {isCanvasVisible && (
+        <div className="flex flex-col items-center justify-center gap-4">
+          <div className="p-3 bg-[#45465e] border-4 border-[#341d27] rounded-3xl shadow-[0_8px_0_0_#341d27]">
+            <canvas
+              ref={canvasRef}
+              onMouseDown={!isPreviewMode ? handleMouseDown : undefined}
+              onMouseMove={!isPreviewMode ? handleMouseMove : undefined}
+              onMouseUp={!isPreviewMode ? handleMouseUp : undefined}
+              className="block cursor-crosshair bg-[#45465e]"
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

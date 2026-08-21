@@ -1,77 +1,64 @@
-# React + TypeScript + Vite
+# Sokoban
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind-3.4-teal)
 
-Currently, two official plugins are available:
+![demo](./gifs/demo.gif)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+[Description](#description) • [Features](#features) • [Tech Stack](#techstack) • [Installation](#installation)
 
-## React Compiler
+## Description
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+A minimalist, responsive, and aesthetically pleasing **Sokoban** game built from scratch using `React`, `TypeScript`, and `Tailwind CSS`.
 
-Note: This will impact Vite dev & build performances.
+The project focuses on grid-based movement logic, clean code architecture, and a cozy retro-indie aesthetic inspired by classic pixel-art games. The design principles and focus on smooth, isolated state tracking were heavily inspired by the game design philosophy of **Jonathan Blow**.
 
-## Expanding the ESLint configuration
+## Features
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 50 Built-in Levels & Campaign Mode
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Explore a carefully curated sequence of 50 puzzles with a gradual difficulty curve. The progression system dynamically tracks your unlocked levels, saving state and blocking unreached areas, ensuring a focused and rewarding gameplay loop. Includes full history tracking for non-punishing puzzle solving.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+![demo](./gifs/levels.gif)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Map Editor
 
+A fully functional, grid-based layout designer. The editor provides real-time canvas resizing, drawing tools, and eraser modes. It translates mouse brush-strokes into underlying block arrays, serving as a powerful developer and player tool for level creation.
+
+![demo](./gifs/editor.gif)
+
+### Isolated Custom Playtesting & Import
+
+Players can export their maps or download custom `.txt` layouts from external sources. The game engine utilizes a robust `FileReader` parsing pipeline with flood-fill algorithms to clean boundaries, wrap external maps into water/walls seamlessly, and playtest them in a safely isolated environment without breaking main campaign states.
+
+![demo](./gifs/custom.gif)
+
+## TechStack
+
+- **React** — UI and state management
+- **TypeScript** — type safety and better DX
+- **Tailwind CSS** — styling
+- **localStorage** — persistent data
+
+## Installation
+
+Clone the repository
+
+```bash
+git clone https://github.com/Woefulking/Sokoban.git
+cd Sokoban
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Install dependencies
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+npm install
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Run the project
 
+```bash
+npm run dev
 ```
