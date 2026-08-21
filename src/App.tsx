@@ -9,9 +9,6 @@ function App() {
 
   function getCurrentScreen() {
     switch (state.screen) {
-      // case 'splash': {
-      //   return <Splash />;
-      // }
       case 'menu': {
         return (
           <Menu
@@ -38,9 +35,6 @@ function App() {
       case 'custom': {
         return <Custom onBack={() => changeScreen('menu')} />;
       }
-      // case 'settings': {
-      //   return <Settings />;
-      // }
     }
   }
 
