@@ -49,6 +49,7 @@ export function getWaterTile(floor: BlockType[][], x: number, y: number) {
     4: levelTiles.waterFloor,
     8: levelTiles.waterFloor,
     12: levelTiles.waterFloor,
+    14: levelTiles.waterFloor,
 
     6: levelTiles.waterFloor,
     10: levelTiles.waterFloor,

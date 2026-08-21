@@ -1,12 +1,11 @@
-import { useReducer, useState } from 'react';
-import './App.css';
-import { AppReducer, initialAppState } from './reducers/appReducer';
-import { Game } from './components/Game';
-import { Editor } from './components/Editor';
-import { Menu } from './components/Menu';
+import { Game } from 'pages/Game';
+import { Editor } from 'pages/Editor';
+import { Menu } from 'pages/Menu';
+import { Custom } from 'pages/Custom';
+import { useApp } from 'hooks/useApp';
 
 function App() {
-  const [state, dispatch] = useReducer(AppReducer, initialAppState);
+  const { state, changeScreen, selectLevel, unlockNextLevel } = useApp();
 
   function getCurrentScreen() {
     switch (state.screen) {
@@ -16,8 +15,9 @@ function App() {
       case 'menu': {
         return (
           <Menu
-            onPlay={() => dispatch({ type: 'changeScreen', payload: 'game' })}
-            onOpenEditor={() => dispatch({ type: 'changeScreen', payload: 'editor' })}
+            onPlay={() => changeScreen('game')}
+            onOpenEditor={() => changeScreen('editor')}
+            onOpenCustom={() => changeScreen('custom')}
           />
         );
       }
@@ -26,13 +26,17 @@ function App() {
           <Game
             currentLevel={state.currentLevel}
             unlockedLevels={state.unlockedLevels}
-            onLevelUnlock={() => dispatch({ type: 'unlockNextLevel' })}
-            onBack={() => dispatch({ type: 'changeScreen', payload: 'menu' })}
+            onSelectLevel={selectLevel}
+            onLevelUnlock={() => unlockNextLevel()}
+            onBack={() => changeScreen('menu')}
           />
         );
       }
       case 'editor': {
-        return <Editor />;
+        return <Editor onBack={() => changeScreen('menu')} />;
+      }
+      case 'custom': {
+        return <Custom onBack={() => changeScreen('menu')} />;
       }
       // case 'settings': {
       //   return <Settings />;
@@ -40,14 +44,7 @@ function App() {
     }
   }
 
-  return (
-    <>{getCurrentScreen()}</>
-    // <Game
-    //   currentLevel={state.currentLevel}
-    //   onLevelUnlock={() => dispatch({ type: 'unlockNextLevel' })}
-    // />
-    // // <Editor />
-  );
+  return <>{getCurrentScreen()}</>;
 }
 
 export default App;

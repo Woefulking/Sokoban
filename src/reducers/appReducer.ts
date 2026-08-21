@@ -1,9 +1,8 @@
-import type { AppActions, AppState } from '../types/types';
+import type { AppActions, AppState } from 'types/types';
 
-export const initialAppState: AppState = {
+export const initialState: AppState = {
   screen: 'menu',
   currentLevel: 1,
-  totalLeveles: 50,
   unlockedLevels: [1],
 };
 
@@ -16,6 +15,12 @@ export function AppReducer(state: AppState, action: AppActions): AppState {
         screen: newScreen,
       };
     }
+    case 'selectLevel':
+      const currentLevel = action.payload;
+      return {
+        ...state,
+        currentLevel: currentLevel,
+      };
     case 'unlockNextLevel': {
       const nextLevel = state.currentLevel + 1;
       const isAlreadyUnlocked = state.unlockedLevels.includes(nextLevel);

@@ -1,5 +1,5 @@
-import type { GameActions, GameState } from '../types/types';
-import { initializeLevel } from '../utils/gameUtils';
+import type { GameActions, GameState } from 'types/types';
+import { initializeLevel } from 'utils/gameUtils';
 
 export const initialState: GameState = {
   rawLevelText: null,

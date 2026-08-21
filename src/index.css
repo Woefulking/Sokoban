@@ -1,7 +1,28 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'pixel';
+  src:
+    url('/assets/fonts/VT323-Regular.ttf') format('truetype'),
+}
+
+@theme {
+  --font-pixel: 'pixel', sans-serif;
+}
+
 @layer base {
   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    font-family: var(--font-pixel);
+  }
+
+  body {
+    background-image: linear-gradient(to bottom right, #fffbeb, #ffedd5);
+  }
+
+  #root {
+    height: 100vh;
   }
 }

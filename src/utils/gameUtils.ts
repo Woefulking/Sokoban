@@ -1,7 +1,9 @@
-import type { BlockType, PlayerPosition, Position } from '../types/types';
+import type { BlockType, PlayerPosition, Position } from 'types/types';
 
-export function findPlayerOnLevel(level: BlockType[][]): PlayerPosition {
+export function findPlayerOnLevel(level: BlockType[][]): PlayerPosition | null {
   const y = level.findIndex((row) => row.includes('@'));
+
+  if (y === -1) return null;
   const x = level[y].indexOf('@');
 
   return { x, y, direction: 'down', frame: 0 };
@@ -21,14 +23,16 @@ export function findBoxesOnLevel(level: BlockType[][]): Position[] {
   return boxes;
 }
 
-export function floorFill(level: BlockType[][], player: PlayerPosition) {
+export function floorFill(level: BlockType[][], player: PlayerPosition | null) {
+  let copy = structuredClone(level);
+
+  if (!player || player.y === -1 || player.x === -1) return copy;
+
   let target: BlockType[] = [' ', '$', '@'];
   let newSymbol: BlockType = '_';
 
   let startX = player.x;
   let startY = player.y;
-
-  let copy = structuredClone(level);
 
   const dir = [
     [1, 0],
@@ -40,7 +44,9 @@ export function floorFill(level: BlockType[][], player: PlayerPosition) {
   const queue: [number, number][] = [];
   queue.push([startX, startY]);
 
-  copy[startY][startX] = newSymbol;
+  if (copy[startY] && copy[startY][startX]) {
+    copy[startY][startX] = newSymbol;
+  }
 
   while (queue.length > 0) {
     const current = queue.shift()!;
@@ -54,7 +60,7 @@ export function floorFill(level: BlockType[][], player: PlayerPosition) {
         ny >= 0 &&
         ny < copy.length &&
         nx >= 0 &&
-        nx < copy[0].length &&
+        nx < (copy[ny]?.length || 0) &&
         target.includes(copy[ny][nx])
       ) {
         copy[ny][nx] = newSymbol;
@@ -164,6 +170,11 @@ export function initializeLevel(rawText: string) {
   const parsedLevel = lines.map((line) => line.padEnd(cols, ' ').split('')) as BlockType[][];
 
   const foundPlayer = findPlayerOnLevel(parsedLevel);
+
+  if (!foundPlayer) {
+    throw new Error('ОШИБКА_ИГРОКА: На карте уровня должен быть персонаж (@)!');
+  }
+
   const foundBoxes = findBoxesOnLevel(parsedLevel);
   let generatedFloor = floorFill(parsedLevel, foundPlayer);
   const foundGoals = findGoalsOnLevel(generatedFloor);

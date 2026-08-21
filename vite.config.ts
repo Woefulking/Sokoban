@@ -9,7 +9,10 @@ export default defineConfig({
   plugins: [react(), babel({ presets: [reactCompilerPreset()] }), tailwindcss()],
   resolve: {
     alias: {
+      pages: path.resolve(__dirname, './src/pages'),
       types: path.resolve(__dirname, './src/types'),
+      hooks: path.resolve(__dirname, './src/hooks'),
+      reducers: path.resolve(__dirname, './src/reducers'),
       components: path.resolve(__dirname, './src/components'),
       consts: path.resolve(__dirname, './src/consts'),
       utils: path.resolve(__dirname, './src/utils'),

@@ -32,7 +32,7 @@ export function resizeGrid(
 export const validateLevel = (editorFloor: BlockType[][], editorLevel: BlockType[][]): boolean => {
   const playerExists = editorLevel.some((row) => row.includes('@'));
   if (!playerExists) {
-    alert('Ошибка: На уровне должен быть один игрок (@)!');
+    alert('Error: There must be one player on the level.');
     return false;
   }
 
@@ -41,13 +41,13 @@ export const validateLevel = (editorFloor: BlockType[][], editorLevel: BlockType
   const goalsCount = editorFloor.flat().filter((cell) => cell === '.').length;
 
   if (boxesCount === 0 || goalsCount === 0) {
-    alert('Ошибка: На уровне должна быть минимум одна коробка и одна цель!');
+    alert('Error: The level must contain at least one box and one target!');
     return false;
   }
 
   if (boxesCount !== goalsCount) {
     alert(
-      `Ошибка: Количество коробок (${boxesCount}) должно совпадать с количеством целей (${goalsCount})!`
+      `Error: The number of boxes (${boxesCount}) must match the number of targets. (${goalsCount})!`
     );
     return false;
   }

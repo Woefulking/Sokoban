@@ -1,16 +1,16 @@
-export type ScreenType = 'splash' | 'menu' | 'game' | 'editor' | 'settings';
+export type ScreenType = 'splash' | 'menu' | 'game' | 'editor' | 'custom' | 'settings';
 export type BlockType = '' | ' ' | '#' | '~' | '_' | '.' | '$' | '@';
 export type DirectionType = 'up' | 'down' | 'left' | 'right';
 
 export interface AppState {
   screen: ScreenType;
   currentLevel: number;
-  totalLeveles: number;
   unlockedLevels: number[];
 }
 
 export type AppActions =
   | { type: 'changeScreen'; payload: ScreenType }
+  | { type: 'selectLevel'; payload: number }
   | { type: 'unlockNextLevel' };
 
 export interface Position {

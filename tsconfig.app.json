@@ -23,10 +23,13 @@
     "noFallthroughCasesInSwitch": true,
 
     "paths": {
-      "types/*": ["./types/*"],
-      "components/*": ["./components/*"],
-      "consts/*": ["./consts/*"],
-      "utils/*": ["./utils/*"]
+      "pages/*": ["./src/pages/*"],
+      "types/*": ["./src/types/*"],
+      "hooks/*": ["./src/hooks/*"],
+      "reducers/*": ["./src/reducers/*"],
+      "components/*": ["./src/components/*"],
+      "consts/*": ["./src/consts/*"],
+      "utils/*": ["./src/utils/*"]
     }
   },
   "include": ["src"]

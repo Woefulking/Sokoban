@@ -5,13 +5,19 @@ import { mergeEditorLevel, validateLevel } from '../utils/editorUtils';
 import { useImage } from '../hooks/useImage';
 import { drawLevel } from '../utils/drawUtils';
 import type { PlayerPosition, Position } from '../types/types';
+import { Button, ButtonVariants } from 'components/Button';
+import { ImgButton, ImgButtonVariants } from 'components/ImgButton';
 
-export const Editor = () => {
+interface EditorProps {
+  onBack: () => void;
+}
+
+export const Editor = ({ onBack }: EditorProps) => {
   const [state, dispatch] = useReducer(EditorReducer, initialState);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const tileSet = useImage('./src/assets/tileset.png');
-  const playerTileSet = useImage('./src/assets/player.png');
+  const tileSet = useImage('/assets/tiles/tileset.png');
+  const playerTileSet = useImage('/assets/tiles/player.png');
 
   const [inputWidth, setInputWidth] = useState<number>(10);
   const [inputHeight, setInputHeight] = useState<number>(10);
@@ -82,10 +88,10 @@ export const Editor = () => {
       await writable.write(convertedEditorLevel);
       await writable.close();
 
-      alert('Уровень успешно сохранен!');
+      alert('Level successfully saved');
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-        console.error('Ошибка сохранения:', err);
+        console.error('Save error', err);
       }
     }
   };
@@ -96,19 +102,22 @@ export const Editor = () => {
     } else {
       if (!validateLevel(state.editorFloor, state.editorLevel)) return;
 
-      const boxes: Position[] = state.editorLevel.flatMap((row, y) =>
-        row
-          .map((cell, x) => (cell === '$' ? { x, y } : null))
-          .filter((b): b is Position => b !== null)
-      );
+      const boxes: Position[] = [];
+
+      state.editorLevel.forEach((row, y) => {
+        row.forEach((cell, x) => {
+          if (cell === '$') {
+            boxes.push({ x, y });
+          }
+        });
+      });
 
       let player: PlayerPosition | null = null;
       state.editorLevel.forEach((row, y) => {
         const x = row.indexOf('@');
-        if (x !== -1) {
-          player = { x, y, direction: 'down', frame: 0 };
-        }
+        if (x !== -1) player = { x, y, direction: 'down', frame: 0 };
       });
+
       setPreviewBoxes(boxes);
       setPreviewPlayer(player);
       setIsPreviewMode(true);
@@ -132,11 +141,16 @@ export const Editor = () => {
         previewPlayer
       );
     } else {
-      const editorBoxes = state.editorLevel.flatMap((row, y) =>
-        row
-          .map((cell, x) => (cell === '$' ? { x, y } : null))
-          .filter((b): b is Position => b !== null)
-      );
+      const editorBoxes: Position[] = [];
+
+      state.editorLevel.forEach((row, y) => {
+        row.forEach((cell, x) => {
+          if (cell === '$') {
+            editorBoxes.push({ x, y });
+          }
+        });
+      });
+
       let editorPlayer: PlayerPosition | null = null;
       state.editorLevel.forEach((row, y) => {
         const x = row.indexOf('@');
@@ -241,118 +255,141 @@ export const Editor = () => {
   }, [isPreviewMode, previewPlayer, previewBoxes, state.editorFloor]);
 
   return (
-    <div className="flex flex-row items-center w-full h-full gap-12">
-      <div className="flex flex-col items-start justify-between gap-4">
-        <div className="flex flex-row items-center gap-4">
-          <input
-            type="number"
-            placeholder="Canvas Width"
-            value={inputWidth}
-            onChange={(e) => setInputWidth(Number(e.target.value))}
-          />
-          <input
-            type="number"
-            placeholder="Canvas Height"
-            value={inputHeight}
-            onChange={(e) => setInputHeight(Number(e.target.value))}
-          />
-          <button
-            type="button"
-            className="rounded-xl p-4 text-xl text-white bg-black"
-            onClick={handleCreateGrid}
-          >
-            Создать Структуру Уровня
-          </button>
-          <button
-            id="saveLevel"
-            type="button"
-            className="rounded-xl p-4 text-xl text-white bg-black"
-            onClick={handleSaveLevel}
-          >
-            Сохранить уровень
-          </button>
-          <button
-            id="preview"
-            type="button"
-            className="rounded-xl p-4 text-xl text-white bg-black"
-            onClick={handleTogglePreview}
-          >
-            {isPreviewMode ? 'Вернуться в Редактор' : 'Превью уровня'}
-          </button>
+    <div className="md:flex-row md:pt-6 relative flex flex-col items-center justify-center min-h-screen gap-8 p-6 pt-24">
+      <button
+        type="button"
+        className="top-6 left-6 rounded-2xl bg-[#25859d] hover:bg-[#25709d] border-2 border-b-6 border-[#341d27] text-white active:border-b-2 active:translate-y-1 hover:shadow-md px-6 py-3 text-2xl font-black transition-all absolute z-50"
+        onClick={onBack}
+      >
+        Back
+      </button>
+
+      <div className="absolute top-1/2 -translate-y-1/2 left-6 flex flex-col items-stretch w-full max-w-sm gap-6 bg-[#757d90] border-4 border-[#341d27] rounded-3xl p-6 shadow-[0_10px_0_0_#341d27] z-10">
+        <div className="flex flex-col gap-2">
+          <div className="text-amber-50 text-lg font-black tracking-wider uppercase drop-shadow-[0_1px_0_#341d27] [text-shadow:-1px_-1px_0_#341d27,1px_-1px_0_#341d27]">
+            Grid Size
+          </div>
+          <div className="flex flex-row items-center w-full gap-3">
+            <input
+              type="number"
+              placeholder="W"
+              value={inputWidth}
+              className="w-full rounded-xl border-2 border-b-4 border-[#341d27] bg-stone-50 px-2 py-2 text-center text-xl font-black text-[#341d27] outline-none focus:bg-white transition-colors"
+              onChange={(e) => setInputWidth(Number(e.target.value))}
+            />
+            <span className="font-black text-[#341d27] text-xl">×</span>
+            <input
+              type="number"
+              placeholder="H"
+              value={inputHeight}
+              className="w-full rounded-xl border-2 border-b-4 border-[#341d27] bg-stone-50 px-2 py-2 text-center text-xl font-black text-[#341d27] outline-none focus:bg-white transition-colors"
+              onChange={(e) => setInputHeight(Number(e.target.value))}
+            />
+            <div className="min-w-28">
+              <Button
+                type="button"
+                variant={ButtonVariants.BLUE}
+                onClick={handleCreateGrid}
+                className="min-w-24!"
+              >
+                Create
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          <button
-            data-block="#"
-            type="button"
-            className="rounded-xl p-4 text-xl text-white bg-black"
-            onClick={() => dispatch({ type: 'setActiveBlock', payload: '#' })}
-          >
-            Стена
-          </button>
-          <button
-            data-block="~"
-            type="button"
-            className="rounded-xl p-4 text-xl text-white bg-black"
-            onClick={() => dispatch({ type: 'setActiveBlock', payload: '~' })}
-          >
-            Вода
-          </button>
-          <button
-            data-block="_"
-            type="button"
-            className="rounded-xl p-4 text-xl text-white bg-black"
-            onClick={() => dispatch({ type: 'setActiveBlock', payload: '_' })}
-          >
-            Пол
-          </button>
-          <button
-            data-block="$"
-            type="button"
-            className="rounded-xl p-4 text-xl text-white bg-black"
-            onClick={() => dispatch({ type: 'setActiveBlock', payload: '$' })}
-          >
-            Ящик
-          </button>
-          <button
-            data-block="."
-            type="button"
-            className="rounded-xl p-4 text-xl text-white bg-black"
-            onClick={() => dispatch({ type: 'setActiveBlock', payload: '.' })}
-          >
-            Цель
-          </button>
-          <button
-            data-block="@"
-            type="button"
-            className="rounded-xl p-4 text-xl text-white bg-black"
-            onClick={() => dispatch({ type: 'setActiveBlock', payload: '@' })}
-          >
-            Игрок
-          </button>
+
+        <div className="flex flex-col gap-2">
+          <div className="text-amber-50 text-lg font-black tracking-wider uppercase drop-shadow-[0_1px_0_#341d27] [text-shadow:-1px_-1px_0_#341d27,1px_-1px_0_#341d27]">
+            Pallete Tools
+          </div>
+          <div className="grid grid-cols-3 gap-3 bg-[#45465e] border-2 border-[#341d27] p-3 rounded-2xl shadow-inner">
+            <ImgButton
+              variant={ImgButtonVariants.WALL}
+              isActive={state.activeBlock === '#' && !state.eraserMode}
+              onClick={() => dispatch({ type: 'setActiveBlock', payload: '#' })}
+            />
+            <ImgButton
+              variant={ImgButtonVariants.WATER}
+              isActive={state.activeBlock === '~' && !state.eraserMode}
+              onClick={() => dispatch({ type: 'setActiveBlock', payload: '~' })}
+            />
+            <ImgButton
+              variant={ImgButtonVariants.FLOOR}
+              isActive={state.activeBlock === '_' && !state.eraserMode}
+              onClick={() => dispatch({ type: 'setActiveBlock', payload: '_' })}
+            />
+            <ImgButton
+              variant={ImgButtonVariants.BOX}
+              isActive={state.activeBlock === '$' && !state.eraserMode}
+              onClick={() => dispatch({ type: 'setActiveBlock', payload: '$' })}
+            />
+            <ImgButton
+              variant={ImgButtonVariants.GOAL}
+              isActive={state.activeBlock === '.' && !state.eraserMode}
+              onClick={() => dispatch({ type: 'setActiveBlock', payload: '.' })}
+            />
+            <ImgButton
+              variant={ImgButtonVariants.PLAYER}
+              isActive={state.activeBlock === '@' && !state.eraserMode}
+              onClick={() => dispatch({ type: 'setActiveBlock', payload: '@' })}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-row w-full gap-3">
           <button
             id="eraser"
             type="button"
-            className="rounded-xl p-4 text-xl text-white bg-black"
+            className={`w-full rounded-2xl border-2 border-b-6 border-[#341d27] py-2 text-xl font-black transition-all ${
+              state.eraserMode
+                ? 'bg-red-500 hover:bg-red-600 text-white border-b-2 translate-y-1'
+                : 'bg-stone-50 hover:bg-stone-100 text-stone-700 active:border-b-2 active:translate-y-1'
+            }`}
             onClick={() => dispatch({ type: 'toggleEraser' })}
           >
-            Удалить блок
+            {state.eraserMode ? 'Eraser: ON' : 'Use Eraser'}
           </button>
           <button
             id="eraseAll"
             type="button"
-            className="rounded-xl p-4 text-xl text-white bg-black"
+            className="w-full rounded-2xl bg-[#a54d34] hover:bg-[#6a3931] border-2 border-b-6 border-[#341d27] py-2 text-xl font-black text-white active:border-b-2 active:translate-y-1 transition-colors"
             onClick={() => dispatch({ type: 'clearGrid' })}
           >
-            Удалить все
+            Clear All
           </button>
         </div>
+
+        <div className="flex flex-col gap-3 pt-2 border-t-2 border-[#341d27]/20">
+          <Button
+            id="preview"
+            type="button"
+            variant={ButtonVariants.GREEN}
+            onClick={handleTogglePreview}
+          >
+            {isPreviewMode ? 'Back to Editor' : 'Play Preview'}
+          </Button>
+          <Button
+            id="saveLevel"
+            type="button"
+            variant={ButtonVariants.ORANGE}
+            onClick={handleSaveLevel}
+          >
+            Save Level Map
+          </Button>
+        </div>
       </div>
-      <canvas
-        ref={canvasRef}
-        onMouseDown={!isPreviewMode ? handleMouseDown : undefined}
-        onMouseMove={!isPreviewMode ? handleMouseMove : undefined}
-        onMouseUp={!isPreviewMode ? handleMouseUp : undefined}
-      />
+
+      <div className="flex flex-col items-center justify-center gap-4">
+        <div className="p-3 bg-[#45465e] border-4 border-[#341d27] rounded-3xl shadow-[0_8px_0_0_#341d27]">
+          <canvas
+            ref={canvasRef}
+            onMouseDown={!isPreviewMode ? handleMouseDown : undefined}
+            onMouseMove={!isPreviewMode ? handleMouseMove : undefined}
+            onMouseUp={!isPreviewMode ? handleMouseUp : undefined}
+            className="block cursor-crosshair bg-[#45465e]"
+          />
+        </div>
+      </div>
     </div>
   );
 };
