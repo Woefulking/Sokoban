@@ -384,13 +384,13 @@ export const Editor = ({ onBack }: EditorProps) => {
 
       {isCanvasVisible && (
         <div className="flex flex-col items-center justify-center gap-4">
-          <div className="p-3 bg-[#45465e] border-4 border-[#341d27] rounded-3xl shadow-[0_8px_0_0_#341d27]">
+          <div className="p-3 bg-[#45465e] border-4 border-[#341d27] rounded-3xl shadow-[0_8px_0_0_#341d27] max-w-[95vw] md:max-w-[80vw] flex items-center justify-center">
             <canvas
               ref={canvasRef}
               onMouseDown={!isPreviewMode ? handleMouseDown : undefined}
               onMouseMove={!isPreviewMode ? handleMouseMove : undefined}
               onMouseUp={!isPreviewMode ? handleMouseUp : undefined}
-              className="block cursor-crosshair bg-[#45465e]"
+              className="w-full h-auto max-w-full max-h-[70vh] rounded-xl block object-contain [image-rendering:pixelated]"
             />
           </div>
         </div>

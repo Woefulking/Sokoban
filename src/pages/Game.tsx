@@ -151,13 +151,18 @@ export const Game = ({
               <span className="font-black text-[#amber-400] mr-1">Z</span> — Undo Move
             </div>
           </div>
-          <div className="z-10 flex flex-col items-center justify-center gap-6 mt-16">
+          <div className="z-10 flex flex-col items-center justify-center gap-6">
             <div className="px-6 py-2 bg-[#a54d34] border-2 border-b-4 border-[#341d27] text-white text-2xl font-black rounded-xl shadow-sm">
               Level {currentLevel}
             </div>
 
-            <div className="p-3 bg-[#45465e] border-4 border-[#341d27] rounded-3xl shadow-[0_8px_0_0_#341d27]">
-              <canvas ref={canvasRef} className="rounded-xl block"></canvas>
+            <div className="p-3 bg-[#45465e] border-4 border-[#341d27] rounded-3xl shadow-[0_8px_0_0_#341d27] max-w-[95vw] md:max-w-[80vw] flex items-center justify-center">
+              <div className="flex items-center justify-center w-full h-full">
+                <canvas
+                  ref={canvasRef}
+                  className="w-full h-auto max-w-full max-h-[70vh] rounded-xl block object-contain [image-rendering:pixelated]"
+                />
+              </div>
             </div>
 
             <div className="flex flex-row items-center gap-4">
