@@ -17,9 +17,9 @@ The project focuses on grid-based movement logic, clean code architecture, and a
 
 ## Features
 
-### 50 Built-in Levels & Campaign Mode
+### 20 Built-in Levels & Campaign Mode
 
-Explore a carefully curated sequence of 50 puzzles with a gradual difficulty curve. The progression system dynamically tracks your unlocked levels, saving state and blocking unreached areas, ensuring a focused and rewarding gameplay loop. Includes full history tracking for non-punishing puzzle solving.
+Explore a carefully curated sequence of 20 puzzles with a gradual difficulty curve. The progression system dynamically tracks your unlocked levels, saving state and blocking unreached areas, ensuring a focused and rewarding gameplay loop. Includes full history tracking for non-punishing puzzle solving.
 
 ![demo](./gifs/levels.gif)
 
